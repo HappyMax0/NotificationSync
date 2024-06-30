@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">NotificationSync</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="welcome_screen_title">Set this device as</string>
+    <string name="client">Client</string>
+    <string name="server">Server</string>
+    <string name="clientDescription">Receive notifications from another device</string>
+    <string name="serverDescription">Forward notifications to another device</string>
+    <string name="default_notification_channel_id">Default</string>
+    <string name="save_btn_text">Save</string>
+    <string name="settings_reset">Reset</string>
+    <string name="client_screen_copy">Copy</string>
+    <string name="reset_screen_title">Confirm Reset</string>
+    <string name="reset_screen_body">This will reset the app, and you will choose the client or server again</string>
+    <string name="reset_screen_ok">OK</string>
+    <string name="reset_screen_cancel">Cancel</string>
+    <string name="settings">Settings</string>
+    <string name="titlebar_goback">GoBack</string>
+    <string name="server_screen_input_token">Paste Client Token Here</string>
+    <string name="continue_button_text">Continue</string>
+    <string name="toast_token_updated">Token has updated</string>
+</resources>
