@@ -40,15 +40,25 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
 
         val token = sharedPreferences.getString("Token", "")
-
+        /*how to get sender id:
+        1.Sign in to the Firebase console.
+        2.Choose your project.
+        3.Click the settings icon (gear icon) in the left panel.
+        4.Select project settings.
+        5.In the Cloud Messaging tab you can find your Sender ID.
+        */
+        val senderID = "put your sender id here"
         if(!token.isNullOrEmpty()){
             Log.d(TAG, "send to $token")
 
             val msgId = AtomicInteger()
-            val RMBuilder = RemoteMessage.Builder("$token@gcm.googleapis.com/fcm/send")
-            RMBuilder.setMessageId(msgId.incrementAndGet().toString())
-            RMBuilder.addData("title", title)
-            RMBuilder.addData("body", body)
+            val RMBuilder = RemoteMessage.Builder("$senderID@gcm.googleapis.com/fcm/send")
+            RMBuilder.apply {
+                //setMessageId(msgId.incrementAndGet().toString())
+                addData("to", token)
+                addData("title", title)
+                addData("body", body)
+            }
 
             // Send a message to the device corresponding to the provided
             // registration token.
