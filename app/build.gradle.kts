@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.9.0")
     implementation("androidx.navigation:navigation-compose:2.5.3")
     implementation("androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.1")
     implementation("androidx.lifecycle:lifecycle-livedata-core:2.8.1")
