@@ -90,6 +90,10 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.ktx.messaging
 import com.happymax.basicscodelab.ui.theme.NotificationSyncTheme
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 
 enum class NotiSyncScreen(@StringRes val title:Int) {
     Welcome(title = R.string.welcome_screen_title),
@@ -430,6 +434,18 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     val context = LocalContext.current
 
     var token by rememberSaveable {mutableStateOf(sharedPreferences.getString("Token", ""))}
+
+    val assetManager = context.assets
+    val filename = "notificationsync-e95aa-firebase-adminsdk-yuwd4-33db92faa1.json" // 替换为你的 asset 文件名
+
+    val inputStream: InputStream = assetManager.open(filename)
+    val outFile = File(context.getExternalFilesDir(null), filename)
+
+    val outputStream: OutputStream = FileOutputStream(outFile)
+    inputStream.copyTo(outputStream)
+    inputStream.close()
+    outputStream.close()
+
 
     Scaffold(
         topBar = {
