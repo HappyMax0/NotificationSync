@@ -12,6 +12,10 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.compose.ui.platform.LocalContext
 import com.google.auth.oauth2.GoogleCredentials
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -65,8 +69,18 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         if(!token.isNullOrEmpty()){
             Log.d(TAG, "send to $token")
 
-            if(title != null)
-                postAsync(token, title, body, this.baseContext)
+            if(title != null) {
+                val context = this.baseContext
+                GlobalScope.launch(Dispatchers.IO) {
+                    // 在这里执行耗时操作
+                    postAsync(token, title, body, context)
+                    withContext(Dispatchers.Main) {
+                        // 在这里更新 UI
+                    }
+                }
+
+            }
+
 
 //            val msgId = AtomicInteger()
 //            val RMBuilder = RemoteMessage.Builder("$senderID@gcm.googleapis.com/fcm/send")
@@ -96,8 +110,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
     }
 
     fun postAsync(token:String, title:String, body:String, context: Context) {
-        val api_key = "AIzaSyASG_S20l-dnvFlRk5Wj378p0MFXcxT754"
-        val sender = ""
+        
         val client = OkHttpClient()
 
         val obj = JSONObject()
@@ -131,8 +144,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
-            .addHeader("Content-Type", "application/json")
-            .addHeader("Authorization", "Bearer  " + getAccessToken(context))
+            .addHeader("Authorization", "Bearer " + getAccessToken(context))
+            .addHeader("Content-Type", "application/json; UTF-8")
             //.addHeader("Sender", "id=" + sender)
             .build()
 
