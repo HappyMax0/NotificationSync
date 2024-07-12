@@ -110,7 +110,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
     }
 
     fun postAsync(token:String, title:String, body:String, context: Context) {
-        
+
         val client = OkHttpClient()
 
         val obj = JSONObject()
@@ -181,9 +181,16 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val file = File(internalStorageDir, "notificationsync-e95aa-firebase-adminsdk-yuwd4-33db92faa1.json") // 替换为你的文件名
         val googleCredentials: GoogleCredentials = GoogleCredentials
             .fromStream(FileInputStream(file))
-            .createScoped(MESSAGING_SCOPE)
+            .createScoped(SCOPES.toList())
         googleCredentials.refreshAccessToken()
-        return googleCredentials.getAccessToken().getTokenValue()
+        val token = googleCredentials.getAccessToken()
+        if(token != null){
+            Log.d(TAG, "result is $token")
+            return token.getTokenValue()
+        }
+
+        Log.d(TAG, "can not get token")
+        return String()
     }
 
 
