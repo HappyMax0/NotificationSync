@@ -182,11 +182,11 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val googleCredentials: GoogleCredentials = GoogleCredentials
             .fromStream(FileInputStream(file))
             .createScoped(SCOPES.toList())
-        googleCredentials.refreshAccessToken()
-        val token = googleCredentials.getAccessToken()
+
+        val token = googleCredentials.refreshAccessToken().getTokenValue()
         if(token != null){
             Log.d(TAG, "result is $token")
-            return token.getTokenValue()
+            return token
         }
 
         Log.d(TAG, "can not get token")
