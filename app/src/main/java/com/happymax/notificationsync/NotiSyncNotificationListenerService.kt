@@ -78,23 +78,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                         // 在这里更新 UI
                     }
                 }
-
             }
-
-
-//            val msgId = AtomicInteger()
-//            val RMBuilder = RemoteMessage.Builder("$senderID@gcm.googleapis.com/fcm/send")
-//            RMBuilder.apply {
-//                //setMessageId(msgId.incrementAndGet().toString())
-//                addData("to", token)
-//                addData("title", title)
-//                addData("body", body)
-//            }
-//
-//            // Send a message to the device corresponding to the provided
-//            // registration token.
-//            val response = FirebaseMessaging.getInstance().send(RMBuilder.build())
-//            Log.d(TAG, "result is $response")
         }
     }
 
@@ -134,13 +118,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
 
         val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
 
-//        val requestBody: RequestBody = FormBody.Builder()
-//            .add("to", token)
-//            .add("title", title)
-//            .add("body", body)
-//            .build()
         val url = "https://fcm.googleapis.com/v1/projects/notificationsync-e95aa/messages:send"
-        //"https://fcm.googleapis.com/fcm/send"
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
@@ -161,17 +139,6 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                 }
             }
         })
-
-
-        /*val call = client.newCall(request)
-        try {
-            val response: Response = call.execute()
-            if (response.isSuccessful) {
-                response.body?.string()?.let { Log.d(TAG, it) }
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }*/
     }
 
     @Throws(IOException::class)
