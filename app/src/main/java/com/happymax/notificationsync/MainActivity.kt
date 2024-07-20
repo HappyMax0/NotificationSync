@@ -609,7 +609,6 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context):A
 
     val packageManager = context.packageManager
     val packageInfos = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     var enabledPackages = mutableListOf<String>()
     val json = sharedPreferences.getString("EnabledPackages", null)
