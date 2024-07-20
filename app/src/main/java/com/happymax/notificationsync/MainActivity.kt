@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
@@ -620,18 +621,15 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context):A
         }
     }
 
-    val intent = Intent(Intent.ACTION_MAIN)
-    intent.addCategory(Intent.CATEGORY_LAUNCHER);
-    val mResolveInfos: List<ResolveInfo> =
-        packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-
-
-    for (info in mResolveInfos) {
-        val label = info.loadLabel(packageManager)
-        if(label != null){
-            if (true) {
+    for (info in packageInfos){
+        val packageInfo: PackageInfo =
+            packageManager.getPackageInfo(info.packageName, PackageManager.GET_PERMISSIONS)
+        val requestedPermissions = packageInfo.requestedPermissions;
+        if(requestedPermissions != null) {
+            if(requestedPermissions.contains("android.permission.POST_NOTIFICATIONS")){
+                val label = info.loadLabel(packageManager)
                 val appName = label.toString()
-                val packageName = info.activityInfo.packageName
+                val packageName = info.packageName
                 val icon: Drawable? = info.loadIcon(packageManager);
                 val enable = enabledPackages.contains(packageName);
                 val appInfo = AppInfo(appName, packageName, icon, enable)
