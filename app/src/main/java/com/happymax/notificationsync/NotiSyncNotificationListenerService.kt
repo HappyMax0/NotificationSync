@@ -79,7 +79,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val notifatication = sbn?.notification
         val extras = notifatication?.extras
         val packageName = sbn?.packageName
-        val extraImage = extras?.getString(Notification.EXTRA_PICTURE)
+        //val extraImage = extras?.getString(Notification.EXTRA_PICTURE)
         val title = extras?.getString(Notification.EXTRA_TITLE, "")
         val body =
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
@@ -111,7 +111,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                 val context = this.baseContext
                 GlobalScope.launch(Dispatchers.IO) {
                     // 在这里执行耗时操作
-                    postAsync(token, title, body, context)
+                    postAsync(token, title, body, packageName, context)
                     withContext(Dispatchers.Main) {
                         // 在这里更新 UI
                     }
@@ -131,15 +131,18 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         }
     }
 
-    fun postAsync(token:String, title:String, body:String, context: Context) {
+    fun postAsync(token:String, title:String, body:String, packageName:String?, context: Context) {
 
         val client = OkHttpClient()
 
         val obj = JSONObject()
-        //data
+        //notification
         val notification = JSONObject()
         notification.put("title", title)
         notification.put("body", body)
+        //data
+        val data = JSONObject()
+        data.put("packageName", packageName)
         //android
         val android = JSONObject()
         android.put("direct_boot_ok", false)
@@ -147,6 +150,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val message = JSONObject()
         message.put("token", token)
         message.put("notification", notification)
+        message.put("data", data)
         //message.put("android", android)
 
         obj.put("message", message)
