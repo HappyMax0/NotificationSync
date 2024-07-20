@@ -63,9 +63,14 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         startForeground(1, foregroundNotice)
     }
 
+    override fun onDestroy() {
+        stopForeground(true)
+        super.onDestroy()
+    }
+
     override fun onBind(intent: Intent?): IBinder? {
         return super.onBind(intent)
-        stopForeground(true)
+
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
