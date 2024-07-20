@@ -13,6 +13,10 @@
     <string name="serverDescription">Forward notifications to another device</string>
     <string name="default_notification_channel_id">Default</string>
     <string name="save_btn_text">Save</string>
+    <string name="status_switch_text">Status</string>
+    <string name="gotoAppList_btn_text">Set which apps\' notifications to forward</string>
+    <string name="launch_btn_text">Start</string>
+    <string name="stop_btn_text">Stop</string>
     <string name="settings_reset">Reset</string>
     <string name="client_screen_copy">Copy</string>
     <string name="reset_screen_title">Confirm Reset</string>
@@ -24,4 +28,5 @@
     <string name="server_screen_input_token">Paste Client Token Here</string>
     <string name="continue_button_text">Continue</string>
     <string name="toast_token_updated">Token has updated</string>
+    <string name="appList">Select apps</string>
 </resources>

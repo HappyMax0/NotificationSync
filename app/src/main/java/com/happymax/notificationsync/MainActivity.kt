@@ -1,12 +1,18 @@
 package com.happymax.notificationsync
 
 import android.Manifest
-import android.content.ComponentName
+import android.app.NotificationManager
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -16,11 +22,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,13 +39,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +59,7 @@ import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,19 +69,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat.*
+import androidx.core.content.ContextCompat.checkSelfPermission
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -86,21 +90,24 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.ktx.messaging
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.happymax.basicscodelab.ui.theme.NotificationSyncTheme
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import kotlin.concurrent.thread
+
 
 enum class NotiSyncScreen(@StringRes val title:Int) {
     Welcome(title = R.string.welcome_screen_title),
     Server(title = R.string.server),
     Client(title = R.string.client),
     Settings(title = R.string.settings),
-    Reset(title = R.string.reset_screen_title)
+    Reset(title = R.string.reset_screen_title),
+    AppList(title = R.string.appList)
 }
 
 class MainActivity : ComponentActivity() {
@@ -239,51 +246,106 @@ fun WelcomeScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenVie
 }
 
 @Composable
-fun ShowNotication(name: String, modifier: Modifier = Modifier) {
-    var expanded by rememberSaveable {mutableStateOf(false)}
-    val extraPadding by animateDpAsState(if (expanded) 48.dp else 0.dp, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessLow)
-    )
+fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier) {
+    var checked by rememberSaveable {mutableStateOf(appInfo.enable)}
 
-    Surface(color = MaterialTheme.colorScheme.primary,
+    Surface(
         modifier = modifier.padding(vertical = 4.dp, horizontal = 8.dp),
         content =  {
             Row(modifier = Modifier
-                .padding(24.dp)
+                .padding(12.dp)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessLow
                     )
                 )){
+                if(appInfo.icon != null)
+                    Image(bitmap = drawableToBitmap(appInfo.icon).asImageBitmap(), contentDescription = appInfo.appName,
+                        modifier = Modifier
+                            .width(60.dp)
+                            .height(60.dp)
+                            .padding(10.dp))
                 Column(modifier = Modifier
-                    .weight(1f)) {
+                    .weight(1f)
+                    .align(Alignment.CenterVertically)) {
                     Text(
-                        text = "Hello",
-                    )
-                    Text(
-                        text = "$name!",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        text = "${appInfo.appName}",
+                        modifier = modifier
                     )
                 }
-                ElevatedButton(onClick = { expanded = !expanded }) {
-                    Text(if(expanded) "Show less" else "Show more")
-                }
+                Switch(checked = checked, onCheckedChange = {
+                    checked = it
+                    appInfo.enable = it
+                })
             }
 
         })
 }
 
+fun drawableToBitmap(drawable: Drawable): Bitmap {
+    if (drawable is BitmapDrawable) {
+        return drawable.bitmap
+    }
 
+    val bitmap = Bitmap.createBitmap(
+        drawable.intrinsicWidth,
+        drawable.intrinsicHeight,
+        Bitmap.Config.ARGB_8888
+    )
+    val canvas = Canvas(bitmap)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    return bitmap
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoticationList(modifier: Modifier = Modifier, names:List<String> = List(50){ "$it" }){
-    LazyColumn(modifier = modifier.padding(vertical = 4.dp)) {
-        items(items = names){name ->
-            ShowNotication(name = name)
+fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
+    val context = LocalContext.current
+    var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
+    thread {
+        appList = getAppList(sharedPreferences, context)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.primary,
+            ), navigationIcon = {
+                IconButton(onClick = navigateUp) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(id = R.string.titlebar_goback)
+                    )
+                }
+            }, actions = {
+                IconButton(onClick = {
+                    var enabledPackages = appList.filter { it.enable }.map { it.packageName }
+                    val gson = Gson()
+                    val json = gson.toJson(enabledPackages)
+                    val editor = sharedPreferences.edit()
+                    editor.putString("EnabledPackages", json)
+                    editor.apply()
+                    navigateUp()
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.Done,
+                        contentDescription = stringResource(id = R.string.save_btn_text)
+                    )
+                }
+            })
+        }
+    ) { innerPadding ->
+        LazyColumn(modifier = modifier.padding(innerPadding)) {
+            items(items = appList){ item ->
+                ShowAppInfo(item)
+            }
         }
     }
+
 }
 
 @Composable
@@ -326,6 +388,8 @@ fun MainScreen(navController: NavHostController = rememberNavController(),
         composable(route = NotiSyncScreen.Server.name) {
             ServerScreen(sharedPreferences, viewModel, onSettingsButtonClicked = {
                 navController.navigate(NotiSyncScreen.Settings.name)
+            }, onGotoAppListButtonClicked = {
+                navController.navigate(NotiSyncScreen.AppList.name)
             })
         }
 
@@ -349,6 +413,10 @@ fun MainScreen(navController: NavHostController = rememberNavController(),
                 editor.apply()
                 navController.navigate(NotiSyncScreen.Welcome.name)
             })
+        }
+
+        composable(route = NotiSyncScreen.AppList.name){
+            AppListScreen(sharedPreferences, navigateUp = { navController.navigateUp() })
         }
 
     }
@@ -430,9 +498,9 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenViewModel,
-                 onSettingsButtonClicked:() -> Unit){
+                 onSettingsButtonClicked:() -> Unit, onGotoAppListButtonClicked:() -> Unit){
     val context = LocalContext.current
-
+    var enable by rememberSaveable {mutableStateOf(false)}
     var token by rememberSaveable {mutableStateOf(sharedPreferences.getString("Token", ""))}
 
     val assetManager = context.assets
@@ -446,6 +514,24 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     inputStream.close()
     outputStream.close()
 
+    val packageName:String = context.packageName
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 更新状态以触发重组
+                val flat = Settings.Secure.getString(context.contentResolver,"enabled_notification_listeners");
+                if (flat != null) {
+                    enable = flat.contains(packageName);
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -481,34 +567,82 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                         .fillMaxWidth()
                 )
             }
+
             Button(
-                onClick = {
+                onClick  = {
                     val editor = sharedPreferences.edit()
                     editor.putString("Token", token)
                     editor.apply()
-
-                    if (NotificationManagerCompat.getEnabledListenerPackages(context)
-                            .contains("com.happymax.notificationsync")
-                    ) {
-                        val pm: PackageManager = context.packageManager
-                        pm.setComponentEnabledSetting(
-                            ComponentName(context, NotiSyncNotificationListenerService::class.java),
-                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                            PackageManager.DONT_KILL_APP
-                        )
-                    } else {
-                        // 跳转到设置页开启权限
-                        context.startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
-                    }
                 }, modifier = Modifier
                     .padding(10.dp)
                     .align(Alignment.CenterHorizontally)
-            ) {
+            ){
                 Text(text = stringResource(R.string.save_btn_text))
+            }
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)) {
+                Text(text = stringResource(R.string.status_switch_text), modifier = Modifier.align(Alignment.CenterVertically))
+                Switch(checked = enable, onCheckedChange = {
+                    //enable = it
+                    // 跳转到设置页开启权限
+                    context.startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                }, modifier = Modifier
+                    .padding(10.dp)
+                )
+            }
+
+            Button(
+                onClick = onGotoAppListButtonClicked, modifier = Modifier
+                    .padding(10.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Text(text = stringResource(R.string.gotoAppList_btn_text))
             }
         }
     }
 }
+
+private fun getAppList(sharedPreferences: SharedPreferences, context: Context):ArrayList<AppInfo>{
+    val appList = ArrayList<AppInfo>()
+
+    val packageManager = context.packageManager
+    val packageInfos = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    var enabledPackages = mutableListOf<String>()
+    val json = sharedPreferences.getString("EnabledPackages", null)
+    if(json != null){
+        val type = object : TypeToken<List<String>>() {}.type
+        if (json != null) {
+            val gson = Gson()
+            enabledPackages = gson.fromJson(json, type)
+        }
+    }
+
+    val intent = Intent(Intent.ACTION_MAIN)
+    intent.addCategory(Intent.CATEGORY_LAUNCHER);
+    val mResolveInfos: List<ResolveInfo> =
+        packageManager.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+
+
+    for (info in mResolveInfos) {
+        val label = info.loadLabel(packageManager)
+        if(label != null){
+            if (true) {
+                val appName = label.toString()
+                val packageName = info.activityInfo.packageName
+                val icon: Drawable? = info.loadIcon(packageManager);
+                val enable = enabledPackages.contains(packageName);
+                val appInfo = AppInfo(appName, packageName, icon, enable)
+                appList.add(appInfo)
+            }
+        }
+    }
+
+    return  appList
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -644,6 +778,8 @@ fun ServerSettingsPreview(){
     NotificationSyncTheme{
         ServerScreen(sharedPreferences, viewModel, onSettingsButtonClicked = {
             navController.navigate(NotiSyncScreen.Settings.name)
+        }, onGotoAppListButtonClicked = {
+            navController.navigate(NotiSyncScreen.AppList.name)
         })
     }
 }

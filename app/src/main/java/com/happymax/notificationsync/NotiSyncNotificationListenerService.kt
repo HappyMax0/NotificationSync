@@ -1,6 +1,8 @@
 package com.happymax.notificationsync
 
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -10,8 +12,10 @@ import android.os.IBinder
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationCompat
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -25,7 +29,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
-import java.util.Arrays
+import java.util.Objects
 
 
 class NotiSyncNotificationListenerService : NotificationListenerService() {
@@ -39,25 +43,54 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         super.onCreate()
         sharedPreferences = getSharedPreferences("settings", MODE_PRIVATE)
 
+        val mChannel: NotificationChannel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mChannel = NotificationChannel(
+                "Foreground",
+                "前台服务",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            Objects.requireNonNull<NotificationManager>(
+                getSystemService<NotificationManager>(
+                    NotificationManager::class.java
+                )
+            ).createNotificationChannel(mChannel)
+        }
+        val foregroundNotice: Notification = NotificationCompat.Builder(this, "Foreground")
+            .setContentTitle("后台转发通知中")
+            .setContentText("转发中")
+            .build()
+        startForeground(1, foregroundNotice)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
         return super.onBind(intent)
-
+        stopForeground(true)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-
-        val notifatication = sbn?.notification;
-        val extras = notifatication?.extras;
-
-        var extraImage = extras?.getString(Notification.EXTRA_PICTURE)
+        var enabledPackages = mutableListOf<String>()
+        val notifatication = sbn?.notification
+        val extras = notifatication?.extras
+        val packageName = sbn?.packageName
+        val extraImage = extras?.getString(Notification.EXTRA_PICTURE)
         val title = extras?.getString(Notification.EXTRA_TITLE, "")
         val body =
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
 
         val token = sharedPreferences.getString("Token", "")
+
+        val json = sharedPreferences.getString("EnabledPackages", null)
+        if(json != null){
+            val type = object : TypeToken<List<String>>() {}.type
+            if (json != null) {
+                val gson = Gson()
+                enabledPackages = gson.fromJson(json, type)
+
+            }
+        }
+
         /*how to get sender id:
         1.Sign in to the Firebase console.
         2.Choose your project.
@@ -66,7 +99,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         5.In the Cloud Messaging tab you can find your Sender ID.
         */
         val senderID = ""
-        if(!token.isNullOrEmpty()){
+        if(!token.isNullOrEmpty() && enabledPackages.contains(packageName)){
             Log.d(TAG, "send to $token")
 
             if(title != null) {
