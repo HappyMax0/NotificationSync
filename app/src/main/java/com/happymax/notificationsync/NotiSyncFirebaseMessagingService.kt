@@ -7,6 +7,8 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager.NameNotFoundException
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.RingtoneManager
 import android.util.Log
 import android.widget.Toast
@@ -14,33 +16,34 @@ import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import java.io.IOException
+import java.net.URL
 
 
 class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
-    // [START receive_message]
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        // TODO(developer): Handle FCM messages here.
         // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
         Log.d(TAG, "From: " + remoteMessage.from)
+
+        // Check if message contains a notification payload.
+        remoteMessage.data?.let { data ->
+            val packName = data["packageName"]
+            packName?.let{ Log.d(TAG, "packName: ${it}") }
+
+            val appName = data["appName"]
+            appName?.let{ Log.d(TAG, "appName: ${it}") }
+        }
 
         // Check if message contains a notification payload.
         val notification = remoteMessage.getNotification()
         if (notification != null) {
             if(notification.title != null && notification.body != null){
-                val appMsg = AppMsg(notification.title!!, notification.body!!)
+                val appMsg = AppMsg(null, null, notification.title!!, notification.body!!, notification.imageUrl.toString())
                 sendNotification(appMsg)
             }
         }
-
-        // 提取额外的数据
-        remoteMessage.data?.let { data ->
-            // 处理额外的数据
-            val packName = data["packageName"]
-            if(packName != null)
-                Log.d(TAG, "packName: " + packName)
-        }
     }
-    // [END receive_message]
 
     // [START on_new_token]
     /**
@@ -80,7 +83,7 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
     }
 
     private fun sendNotification(appMsg: AppMsg) {
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, MainActivity::class.java)//doStartApplicationWithPackageName(appMsg.packageName)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pendingIntent = PendingIntent.getActivity(
             this, 0 , intent,
@@ -93,10 +96,15 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
             NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(appMsg.title)
-                .setContentText(appMsg.msg)
+                .setContentText(appMsg.body)
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri)
-                .setContentIntent(pendingIntent)
+                //.setContentIntent(pendingIntent)
+
+        if(appMsg.image != null){
+            val bitmap = getBitmapFromUrl(appMsg.image.toString())
+            notificationBuilder.setLargeIcon(bitmap)
+        }
 
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
@@ -111,15 +119,26 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
         notificationManager.notify(0 /* ID of notification */, notificationBuilder.build())
     }
 
+    private fun getBitmapFromUrl(imageUrl: String): Bitmap? {
+        return try {
+            val url = URL(imageUrl)
+            BitmapFactory.decodeStream(url.openConnection().getInputStream())
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     private fun doStartApplicationWithPackageName(packagename: String?):Intent {
         val currentIntent = Intent(this, MainActivity::class.java)
         currentIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        // 通过包名获取此APP详细信息，包括Activities、services、versioncode、name等等
-        var packageinfo: PackageInfo? = null
         if(packagename == null){
             Log.d(TAG, "return currentIntent")
             return  currentIntent
         }
+
+        // 通过包名获取此APP详细信息，包括Activities、services、versioncode、name等等
+        var packageinfo: PackageInfo? = null
 
         try {
             packageinfo = packageManager.getPackageInfo(packagename, 0)
@@ -163,6 +182,6 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
     }
 
     companion object {
-        private const val TAG = "NotiSyncFirebaseMessagingService"
+        private const val TAG = "FCM"
     }
 }

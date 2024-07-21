@@ -29,4 +29,6 @@
     <string name="continue_button_text">Continue</string>
     <string name="toast_token_updated">Token has updated</string>
     <string name="appList">Select apps</string>
+    <string name="notification_running">Server running</string>
+    <string name="notification_forwarding">Forwarding</string>
 </resources>

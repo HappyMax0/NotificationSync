@@ -7,11 +7,13 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationCompat
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.gson.Gson
@@ -20,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.get
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -57,8 +60,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
             ).createNotificationChannel(mChannel)
         }
         val foregroundNotice: Notification = NotificationCompat.Builder(this, "Foreground")
-            .setContentTitle("后台转发通知中")
-            .setContentText("转发中")
+            .setContentTitle(getString(R.string.notification_running))
+            .setContentText(getString(R.string.notification_forwarding))
             .build()
         startForeground(1, foregroundNotice)
     }
@@ -79,10 +82,16 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val notifatication = sbn?.notification
         val extras = notifatication?.extras
         val packageName = sbn?.packageName
-        //val extraImage = extras?.getString(Notification.EXTRA_PICTURE)
+        var appName = ""
+        if(packageName != null)
+        {
+            appName = packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)).toString()
+        }
+
         val title = extras?.getString(Notification.EXTRA_TITLE, "")
         val body =
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
+        val image = extras?.getString(Notification.EXTRA_LARGE_ICON_BIG)
 
         val token = sharedPreferences.getString("Token", "")
 
@@ -103,7 +112,6 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         4.Select project settings.
         5.In the Cloud Messaging tab you can find your Sender ID.
         */
-        val senderID = ""
         if(!token.isNullOrEmpty() && enabledPackages.contains(packageName)){
             Log.d(TAG, "send to $token")
 
@@ -111,7 +119,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                 val context = this.baseContext
                 GlobalScope.launch(Dispatchers.IO) {
                     // 在这里执行耗时操作
-                    postAsync(token, title, body, packageName, context)
+                    PostToFCMServer(AppMsg(appName, packageName, title, body, image), token, context)
                     withContext(Dispatchers.Main) {
                         // 在这里更新 UI
                     }
@@ -131,18 +139,21 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         }
     }
 
-    fun postAsync(token:String, title:String, body:String, packageName:String?, context: Context) {
-
+    fun PostToFCMServer(appMsg: AppMsg, token:String, context: Context) {
         val client = OkHttpClient()
 
         val obj = JSONObject()
         //notification
         val notification = JSONObject()
-        notification.put("title", title)
-        notification.put("body", body)
+        notification.put("title", "[${appMsg.appName}] ${appMsg.title}")
+        notification.put("body", appMsg.body)
+        if(appMsg.image != null){
+            notification.put("imageUrl", appMsg.image)
+        }
         //data
         val data = JSONObject()
-        data.put("packageName", packageName)
+        data.put("packageName", appMsg.packageName)
+        data.put("appName", appMsg.appName)
         //android
         val android = JSONObject()
         android.put("direct_boot_ok", false)
@@ -150,23 +161,20 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val message = JSONObject()
         message.put("token", token)
         message.put("notification", notification)
-        message.put("data", data)
+        //message.put("data", data)
         //message.put("android", android)
 
         obj.put("message", message)
-//        obj.put("to", token)
-//        obj.put("data", data)
         val json = obj.toString()
 
         val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
-
-        val url = "https://fcm.googleapis.com/v1/projects/notificationsync-e95aa/messages:send"
+        //You can find myproject-ID in the General tab of your project settings in the Firebase console.
+        val url = "https://fcm.googleapis.com/v1/projects/myproject-ID/messages:send"
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
             .addHeader("Authorization", "Bearer " + getAccessToken(context))
             .addHeader("Content-Type", "application/json; UTF-8")
-            //.addHeader("Sender", "id=" + sender)
             .build()
 
         val call = client.newCall(request)

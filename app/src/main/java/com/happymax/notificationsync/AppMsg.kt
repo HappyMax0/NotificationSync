@@ -1,3 +1,3 @@
 package com.happymax.notificationsync
 
-data class AppMsg(val title:String, val msg:String)
+data class AppMsg(val appName:String?, val packageName:String?, val title:String, val body:String, val image:String?)
