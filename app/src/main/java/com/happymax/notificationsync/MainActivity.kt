@@ -2,6 +2,7 @@ package com.happymax.notificationsync
 
 import android.Manifest
 import android.app.NotificationManager
+import android.content.ComponentName
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
@@ -112,6 +113,9 @@ enum class NotiSyncScreen(@StringRes val title:Int) {
 }
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,6 +136,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val extras = intent.extras
+        if(extras != null){
+            val packName = extras?.getString("packageName")
+            val appName = extras?.getString("appName")
+            val intent = Helper.GetApplicationWithPackageName(packName, this)
+            if(intent != null){
+                Log.d(TAG, "start $packName")
+                startActivity(intent)
+            }
+        }
     }
 
     // Declare the launcher at the top of your Activity/Fragment:

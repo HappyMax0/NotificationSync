@@ -91,7 +91,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val title = extras?.getString(Notification.EXTRA_TITLE, "")
         val body =
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
-        val image = extras?.getString(Notification.EXTRA_LARGE_ICON_BIG)
+        val image = extras?.getString(Notification.EXTRA_LARGE_ICON)
 
         val token = sharedPreferences.getString("Token", "")
 
@@ -161,7 +161,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val message = JSONObject()
         message.put("token", token)
         message.put("notification", notification)
-        //message.put("data", data)
+        message.put("data", data)
         //message.put("android", android)
 
         obj.put("message", message)
@@ -169,7 +169,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
 
         val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
         //You can find myproject-ID in the General tab of your project settings in the Firebase console.
-        val url = "https://fcm.googleapis.com/v1/projects/myproject-ID/messages:send"
+        val url = "https://fcm.googleapis.com/v1/projects/notificationsync-e95aa/messages:send"
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
@@ -212,6 +212,6 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
 
 
     companion object {
-        private const val TAG = "NotiSyncNotificationListenerService"
+        private const val TAG = "Listener"
     }
 }

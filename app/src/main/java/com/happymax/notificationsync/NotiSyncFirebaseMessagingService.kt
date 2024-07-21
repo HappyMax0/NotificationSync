@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.content.pm.PackageManager.NameNotFoundException
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -33,6 +34,13 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
 
             val appName = data["appName"]
             appName?.let{ Log.d(TAG, "appName: ${it}") }
+
+            if(packName != null){
+                val intent = Helper.GetApplicationWithPackageName(packName, this)
+                if(intent != null){
+                    startActivity(intent)
+                }
+            }
         }
 
         // Check if message contains a notification payload.
@@ -83,13 +91,6 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
     }
 
     private fun sendNotification(appMsg: AppMsg) {
-        val intent = Intent(this, MainActivity::class.java)//doStartApplicationWithPackageName(appMsg.packageName)
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0 , intent,
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
         val channelId = this.packageName
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val notificationBuilder: NotificationCompat.Builder =
@@ -99,7 +100,6 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
                 .setContentText(appMsg.body)
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri)
-                //.setContentIntent(pendingIntent)
 
         if(appMsg.image != null){
             val bitmap = getBitmapFromUrl(appMsg.image.toString())
@@ -127,58 +127,6 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
             e.printStackTrace()
             null
         }
-    }
-
-    private fun doStartApplicationWithPackageName(packagename: String?):Intent {
-        val currentIntent = Intent(this, MainActivity::class.java)
-        currentIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        if(packagename == null){
-            Log.d(TAG, "return currentIntent")
-            return  currentIntent
-        }
-
-        // 通过包名获取此APP详细信息，包括Activities、services、versioncode、name等等
-        var packageinfo: PackageInfo? = null
-
-        try {
-            packageinfo = packageManager.getPackageInfo(packagename, 0)
-        } catch (e: NameNotFoundException) {
-            e.printStackTrace()
-        }
-        if (packageinfo == null) {
-            Log.d(TAG, "return currentIntent")
-            return currentIntent
-        }
-
-        // 创建一个类别为CATEGORY_LAUNCHER的该包名的Intent
-        val resolveIntent = Intent(Intent.ACTION_MAIN, null)
-        resolveIntent.addCategory(Intent.CATEGORY_LAUNCHER)
-        resolveIntent.setPackage(packageinfo.packageName)
-
-        // 通过getPackageManager()的queryIntentActivities方法遍历
-        val resolveinfoList = packageManager
-            .queryIntentActivities(resolveIntent, 0)
-        val resolveinfo = resolveinfoList.iterator().next()
-        if (resolveinfo != null) {
-            // packagename = 参数packname
-            val packageName = resolveinfo.activityInfo.packageName
-            // 这个就是我们要找的该APP的LAUNCHER的Activity[组织形式：packagename.mainActivityname]
-            val className = resolveinfo.activityInfo.name
-            // LAUNCHER Intent
-            val intent = Intent(Intent.ACTION_MAIN)
-            intent.addCategory(Intent.CATEGORY_LAUNCHER)
-
-            // 设置ComponentName参数1:packagename参数2:MainActivity路径
-            val cn = ComponentName(packageName, className)
-            intent.setComponent(cn)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            //startActivity(intent)
-            Log.d(TAG, "return targetIntent")
-            return  intent
-        }
-
-        Log.d(TAG, "return currentIntent")
-        return currentIntent
     }
 
     companion object {
