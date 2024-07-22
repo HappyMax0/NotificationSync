@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.service.notification.NotificationListenerService
@@ -15,6 +16,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -46,28 +48,30 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         super.onCreate()
         sharedPreferences = getSharedPreferences("settings", MODE_PRIVATE)
 
-        val mChannel: NotificationChannel
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mChannel = NotificationChannel(
-                "Foreground",
-                "前台服务",
-                NotificationManager.IMPORTANCE_DEFAULT
+        val mChannel: NotificationChannel  = NotificationChannel(
+            "Foreground",
+            getString( R.string.notification_foregroundService),
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        Objects.requireNonNull<NotificationManager>(
+            getSystemService<NotificationManager>(
+                NotificationManager::class.java
             )
-            Objects.requireNonNull<NotificationManager>(
-                getSystemService<NotificationManager>(
-                    NotificationManager::class.java
-                )
-            ).createNotificationChannel(mChannel)
-        }
+        ).createNotificationChannel(mChannel)
+
         val foregroundNotice: Notification = NotificationCompat.Builder(this, "Foreground")
             .setContentTitle(getString(R.string.notification_running))
             .setContentText(getString(R.string.notification_forwarding))
+            .setOngoing(true)
             .build()
-        startForeground(1, foregroundNotice)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+        {
+            ServiceCompat.startForeground(this, 1, foregroundNotice, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        }
     }
 
     override fun onDestroy() {
-        stopForeground(true)
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
         super.onDestroy()
     }
 
@@ -79,8 +83,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
         var enabledPackages = mutableListOf<String>()
-        val notifatication = sbn?.notification
-        val extras = notifatication?.extras
+
+        val extras = sbn?.notification?.extras
         val packageName = sbn?.packageName
         var appName = ""
         if(packageName != null)
@@ -98,11 +102,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val json = sharedPreferences.getString("EnabledPackages", null)
         if(json != null){
             val type = object : TypeToken<List<String>>() {}.type
-            if (json != null) {
-                val gson = Gson()
-                enabledPackages = gson.fromJson(json, type)
-
-            }
+            val gson = Gson()
+            enabledPackages = gson.fromJson(json, type)
         }
 
         /*how to get sender id:
@@ -119,7 +120,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                 val context = this.baseContext
                 GlobalScope.launch(Dispatchers.IO) {
                     // 在这里执行耗时操作
-                    PostToFCMServer(AppMsg(appName, packageName, title, body, image), token, context)
+                    postToFCMServer(AppMsg(appName, packageName, title, body, image), token, context)
                     withContext(Dispatchers.Main) {
                         // 在这里更新 UI
                     }
@@ -133,13 +134,11 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onListenerDisconnected() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            // 通知侦听器断开连接 - 请求重新绑定
-            requestRebind(ComponentName(this, NotificationListenerService::class.java))
-        }
+        // 通知侦听器断开连接 - 请求重新绑定
+        requestRebind(ComponentName(this, NotificationListenerService::class.java))
     }
 
-    fun PostToFCMServer(appMsg: AppMsg, token:String, context: Context) {
+    private fun postToFCMServer(appMsg: AppMsg, token:String, context: Context) {
         val client = OkHttpClient()
 
         val obj = JSONObject()

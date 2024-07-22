@@ -31,4 +31,5 @@
     <string name="appList">Select apps</string>
     <string name="notification_running">Server running</string>
     <string name="notification_forwarding">Forwarding</string>
+    <string name="notification_foregroundService">ForegroundService</string>
 </resources>

@@ -343,7 +343,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                 }
             }, actions = {
                 IconButton(onClick = {
-                    var enabledPackages = appList.filter { it.enable }.map { it.packageName }
+                    val enabledPackages = appList.filter { it.enable }.map { it.packageName }
                     val gson = Gson()
                     val json = gson.toJson(enabledPackages)
                     val editor = sharedPreferences.edit()
@@ -633,10 +633,8 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context):A
     val json = sharedPreferences.getString("EnabledPackages", null)
     if(json != null){
         val type = object : TypeToken<List<String>>() {}.type
-        if (json != null) {
-            val gson = Gson()
-            enabledPackages = gson.fromJson(json, type)
-        }
+        val gson = Gson()
+        enabledPackages = gson.fromJson(json, type)
     }
 
     for (info in packageInfos){
