@@ -95,7 +95,6 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val title = extras?.getString(Notification.EXTRA_TITLE, "")
         val body =
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
-        val image = extras?.getString(Notification.EXTRA_LARGE_ICON)
 
         val token = sharedPreferences.getString("Token", "")
 
@@ -120,7 +119,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                 val context = this.baseContext
                 GlobalScope.launch(Dispatchers.IO) {
                     // 在这里执行耗时操作
-                    postToFCMServer(AppMsg(appName, packageName, title, body, image), token, context)
+                    postToFCMServer(AppMsg(appName, packageName, title, body), token, context)
                     withContext(Dispatchers.Main) {
                         // 在这里更新 UI
                     }
@@ -146,9 +145,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val notification = JSONObject()
         notification.put("title", "[${appMsg.appName}] ${appMsg.title}")
         notification.put("body", appMsg.body)
-        if(appMsg.image != null){
-            notification.put("imageUrl", appMsg.image)
-        }
+
         //data
         val data = JSONObject()
         data.put("packageName", appMsg.packageName)

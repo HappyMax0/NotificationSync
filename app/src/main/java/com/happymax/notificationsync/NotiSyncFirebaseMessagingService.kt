@@ -47,7 +47,7 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
         val notification = remoteMessage.getNotification()
         if (notification != null) {
             if(notification.title != null && notification.body != null){
-                val appMsg = AppMsg(null, null, notification.title!!, notification.body!!, notification.imageUrl.toString())
+                val appMsg = AppMsg(null, null, notification.title!!, notification.body!!)
                 sendNotification(appMsg)
             }
         }
@@ -100,11 +100,6 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
                 .setContentText(appMsg.body)
                 .setAutoCancel(true)
                 .setSound(defaultSoundUri)
-
-        if(appMsg.image != null){
-            val bitmap = getBitmapFromUrl(appMsg.image.toString())
-            notificationBuilder.setLargeIcon(bitmap)
-        }
 
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
