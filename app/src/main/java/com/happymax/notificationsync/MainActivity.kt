@@ -42,6 +42,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -75,6 +76,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -352,7 +354,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                     navigateUp()
                 }) {
                     Icon(
-                        imageVector = Icons.Filled.Done,
+                        painter = painterResource(id = R.drawable.baseline_save_24),
                         contentDescription = stringResource(id = R.string.save_btn_text)
                     )
                 }
@@ -835,5 +837,25 @@ fun SettingsScreenPreview(){
         SettingsScreen(sharedPreferences, viewModel,
             navigateUp = { navController.navigateUp() },
             onResetBtnClicked = { navController.navigate(NotiSyncScreen.Reset.name) })
+    }
+}
+
+@Preview
+@Composable
+fun AppListScreenPreview(){
+    val context = LocalContext.current
+
+    val sharedPreferences = context.getSharedPreferences("settings", MODE_PRIVATE)
+
+    val viewModel : MainScreenViewModel = viewModel()
+
+    viewModel.isInited.value = sharedPreferences.getBoolean("IsInited", true)
+
+    val navController = rememberNavController()
+
+    NotificationSyncTheme{
+        AppListScreen(sharedPreferences,
+            navigateUp = { navController.navigateUp() },
+            )
     }
 }
