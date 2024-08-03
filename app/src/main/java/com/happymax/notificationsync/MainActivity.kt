@@ -327,8 +327,9 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
+fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit, onQueryChange: (String) -> Unit, onSearch: (String) -> Unit){
     val context = LocalContext.current
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     thread {
         appList = getAppList(sharedPreferences, context)
@@ -336,33 +337,42 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.primary,
-            ), navigationIcon = {
-                IconButton(onClick = navigateUp) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(id = R.string.titlebar_goback)
-                    )
-                }
-            }, actions = {
-                IconButton(onClick = {
-                    val enabledPackages = appList.filter { it.enable }.map { it.packageName }
-                    val gson = Gson()
-                    val json = gson.toJson(enabledPackages)
-                    val editor = sharedPreferences.edit()
-                    editor.putString("EnabledPackages", json)
-                    editor.apply()
-                    navigateUp()
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.baseline_save_24),
-                        contentDescription = stringResource(id = R.string.save_btn_text)
-                    )
-                }
-            })
+            Column {
+                TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ), navigationIcon = {
+                    IconButton(onClick = navigateUp) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(id = R.string.titlebar_goback)
+                        )
+                    }
+                }, actions = {
+                    IconButton(onClick = {
+                        val enabledPackages = appList.filter { it.enable }.map { it.packageName }
+                        val gson = Gson()
+                        val json = gson.toJson(enabledPackages)
+                        val editor = sharedPreferences.edit()
+                        editor.putString("EnabledPackages", json)
+                        editor.apply()
+                        navigateUp()
+                    }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.baseline_save_24),
+                            contentDescription = stringResource(id = R.string.save_btn_text)
+                        )
+                    }
+                })
+                EmbeddedSearchBar(
+                    onQueryChange = onQueryChange,
+                    isSearchActive = isSearchActive,
+                    onActiveChanged = { isSearchActive = it },
+                    onSearch = onSearch
+                )
+            }
         }
+
     ) { innerPadding ->
         LazyColumn(modifier = modifier.padding(innerPadding)) {
             items(items = appList){ item ->
@@ -441,7 +451,7 @@ fun MainScreen(navController: NavHostController = rememberNavController(),
         }
 
         composable(route = NotiSyncScreen.AppList.name){
-            AppListScreen(sharedPreferences, navigateUp = { navController.navigateUp() })
+            AppListScreen(sharedPreferences, navigateUp = { navController.navigateUp() }, onQueryChange = { }, onSearch = { })
         }
 
     }
@@ -812,26 +822,6 @@ fun EmbeddedSearchBar(
 
 @Preview
 @Composable
-fun WelcomeScreenPreview(){
-    val context = LocalContext.current
-
-    val sharedPreferences = context.getSharedPreferences("settings", MODE_PRIVATE)
-
-    val viewModel : MainScreenViewModel = viewModel()
-
-    viewModel.isInited.value = sharedPreferences.getBoolean("IsInited", false)
-
-    val navController = rememberNavController()
-
-    if(!viewModel.isInited.value){
-        NotificationSyncTheme{
-            WelcomeScreen(sharedPreferences, viewModel)
-        }
-    }
-}
-
-@Preview
-@Composable
 fun ServerSettingsPreview(){
     val context = LocalContext.current
 
@@ -908,6 +898,8 @@ fun AppListScreenPreview(){
     NotificationSyncTheme{
         AppListScreen(sharedPreferences,
             navigateUp = { navController.navigateUp() },
+            onQueryChange = {  },
+            onSearch = { }
             )
     }
 }
