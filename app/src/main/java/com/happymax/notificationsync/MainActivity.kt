@@ -339,7 +339,7 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit, onQueryChange: (String) -> Unit, onSearch: (String) -> Unit){
+fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
     val context = LocalContext.current
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
@@ -385,10 +385,10 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                 }
                 EmbeddedSearchBar(
                     appList = appList,
-                    onQueryChange = onQueryChange,
+                    onQueryChange = { },
                     isSearchActive = isSearchActive,
                     onActiveChanged = { isSearchActive = it },
-                    onSearch = onSearch
+                    onSearch = { }
                 )
             }
         }
@@ -491,7 +491,7 @@ fun MainScreen(navController: NavHostController = rememberNavController(),
         }
 
         composable(route = NotiSyncScreen.AppList.name){
-            AppListScreen(sharedPreferences, navigateUp = { navController.navigateUp() }, onQueryChange = { }, onSearch = { })
+            AppListScreen(sharedPreferences, navigateUp = { navController.navigateUp() })
         }
 
     }
@@ -982,9 +982,6 @@ fun AppListScreenPreview(){
 
     NotificationSyncTheme{
         AppListScreen(sharedPreferences,
-            navigateUp = { navController.navigateUp() },
-            onQueryChange = {  },
-            onSearch = { }
-            )
+            navigateUp = { navController.navigateUp() })
     }
 }
