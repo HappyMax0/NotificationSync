@@ -24,29 +24,39 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,6 +97,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -330,41 +342,49 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
 fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit, onQueryChange: (String) -> Unit, onSearch: (String) -> Unit){
     val context = LocalContext.current
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(true) }
     var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     thread {
         appList = getAppList(sharedPreferences, context)
+        loading = false
     }
-
+    ProgressDialog(showDialog = loading, onDismiss = { loading = false })
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ), navigationIcon = {
-                    IconButton(onClick = navigateUp) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.titlebar_goback)
-                        )
-                    }
-                }, actions = {
-                    IconButton(onClick = {
-                        val enabledPackages = appList.filter { it.enable }.map { it.packageName }
-                        val gson = Gson()
-                        val json = gson.toJson(enabledPackages)
-                        val editor = sharedPreferences.edit()
-                        editor.putString("EnabledPackages", json)
-                        editor.apply()
-                        navigateUp()
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.baseline_save_24),
-                            contentDescription = stringResource(id = R.string.save_btn_text)
-                        )
-                    }
-                })
+                AnimatedVisibility(
+                    visible = !isSearchActive,
+                ) {
+                    TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)},
+                        modifier = Modifier, colors = topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.primary,
+                        ), navigationIcon = {
+                            IconButton(onClick = navigateUp) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(id = R.string.titlebar_goback)
+                                )
+                            }
+                        }, actions = {
+                            IconButton(onClick = {
+                                val enabledPackages = appList.filter { it.enable }.map { it.packageName }
+                                val gson = Gson()
+                                val json = gson.toJson(enabledPackages)
+                                val editor = sharedPreferences.edit()
+                                editor.putString("EnabledPackages", json)
+                                editor.apply()
+                                navigateUp()
+                            }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_save_24),
+                                    contentDescription = stringResource(id = R.string.save_btn_text)
+                                )
+                            }
+                        })
+                }
                 EmbeddedSearchBar(
+                    appList = appList,
                     onQueryChange = onQueryChange,
                     isSearchActive = isSearchActive,
                     onActiveChanged = { isSearchActive = it },
@@ -382,6 +402,26 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
     }
 
 }
+
+@Composable
+fun ProgressDialog(showDialog: Boolean, onDismiss: () -> Unit) {
+    if (showDialog) {
+        Dialog(
+            onDismissRequest = { onDismiss() },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(100.dp)
+                    .background(Color.White, shape = RoundedCornerShape(8.dp))
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}
+
 
 @Composable
 fun MainScreen(navController: NavHostController = rememberNavController(),
@@ -774,12 +814,14 @@ fun ResetScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenViewM
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun EmbeddedSearchBar(
+    appList:ArrayList<AppInfo>,
     onQueryChange: (String) -> Unit,
     isSearchActive: Boolean,
     onActiveChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     onSearch: ((String) -> Unit),
 ) {
+    var queryAppList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     var searchQuery by rememberSaveable { mutableStateOf("") }
     // 1
     val activeChanged: (Boolean) -> Unit = { active ->
@@ -793,6 +835,8 @@ fun EmbeddedSearchBar(
         onQueryChange = { query ->
             searchQuery = query
             onQueryChange(query)
+            val resultList = appList.filter { it.appName.contains(query) }
+            queryAppList = ArrayList(resultList)
         },
         // 3
         onSearch = onSearch,
@@ -801,22 +845,63 @@ fun EmbeddedSearchBar(
         // 4
         modifier = modifier
             .padding(start = 12.dp, top = 2.dp, end = 12.dp, bottom = 12.dp)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .animateContentSize(spring(stiffness = Spring.StiffnessHigh)),
         placeholder = { Text("Search") },
         leadingIcon = {
-            Icon(
-                imageVector = Icons.Rounded.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (isSearchActive) {
+                IconButton(
+                    onClick = { activeChanged(false) },
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.navigation_action_back_cd),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        trailingIcon = if (isSearchActive && searchQuery.isNotEmpty()) {
+            {
+                IconButton(
+                    onClick = {
+                        searchQuery = ""
+                        onQueryChange("")
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.search_text_field_clear),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        } else {
+            null
         },
         // 5
         colors = SearchBarDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         tonalElevation = 0.dp,
+        windowInsets = if (isSearchActive) {
+            SearchBarDefaults.windowInsets
+        } else {
+            WindowInsets(0.dp)
+        }
     ) {
         // Search suggestions or results
+        LazyColumn(modifier = modifier) {
+            items(items = queryAppList){ item ->
+                ShowAppInfo(item)
+            }
+        }
     }
 }
 

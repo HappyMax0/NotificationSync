@@ -32,4 +32,6 @@
     <string name="notification_running">Server running</string>
     <string name="notification_forwarding">Forwarding</string>
     <string name="notification_foregroundService">ForegroundService</string>
+    <string name="search_text_field_clear">Clear</string>
+    <string name="navigation_action_back_cd">Stop Search</string>
 </resources>
