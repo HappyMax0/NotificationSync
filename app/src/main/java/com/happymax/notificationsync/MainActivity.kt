@@ -347,6 +347,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
     var queryAppList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     thread {
         appList = getAppList(sharedPreferences, context)
+
         loading = false
     }
     ProgressDialog(showDialog = loading, onDismiss = { loading = false })
@@ -717,6 +718,7 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context):A
         }
     }
 
+    appList.sortWith(compareBy{ it.appName })
     return  appList
 }
 
