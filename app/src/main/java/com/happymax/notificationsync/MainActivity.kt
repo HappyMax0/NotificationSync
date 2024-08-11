@@ -592,11 +592,14 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
 
     val inputStream: InputStream = assetManager.open(filename)
     val outFile = File(context.getExternalFilesDir(null), filename)
-
-    val outputStream: OutputStream = FileOutputStream(outFile)
-    inputStream.copyTo(outputStream)
-    inputStream.close()
-    outputStream.close()
+    
+    if(!outFile.exists())
+    {
+        val outputStream: OutputStream = FileOutputStream(outFile)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+    }
 
     val packageName:String = context.packageName
 
@@ -663,17 +666,19 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
             ){
                 Text(text = stringResource(R.string.save_btn_text))
             }
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp)) {
-                Text(text = stringResource(R.string.status_switch_text), modifier = Modifier.align(Alignment.CenterVertically))
-                Switch(checked = enable, onCheckedChange = {
-                    //enable = it
-                    // 跳转到设置页开启权限
-                    context.startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
-                }, modifier = Modifier
-                    .padding(10.dp)
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(10.dp)) {
+                    Text(text = stringResource(R.string.status_switch_text), modifier = Modifier.align(Alignment.CenterVertically))
+                    Switch(checked = enable, onCheckedChange = {
+                        //enable = it
+                        // 跳转到设置页开启权限
+                        context.startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                    }, modifier = Modifier
+                        .padding(10.dp)
+                    )
+                }
             }
 
             Button(
