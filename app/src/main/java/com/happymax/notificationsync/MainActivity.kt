@@ -344,6 +344,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
+    var queryAppList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     thread {
         appList = getAppList(sharedPreferences, context)
         loading = false
@@ -383,9 +384,16 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                             }
                         })
                 }
-                EmbeddedSearchBar(
-                    appList = appList,
-                    onQueryChange = { },
+                EmbeddedSearchBar({
+                    LazyColumn(modifier = modifier) {
+                        items(items = queryAppList){ item ->
+                            ShowAppInfo(item)
+                        }
+                    }
+                },
+                    onQueryChange = { query ->
+                        val resultList = appList.filter { it.appName.contains(query) }
+                        queryAppList = ArrayList(resultList) },
                     isSearchActive = isSearchActive,
                     onActiveChanged = { isSearchActive = it },
                     onSearch = { }
@@ -814,14 +822,14 @@ fun ResetScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenViewM
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun EmbeddedSearchBar(
-    appList:ArrayList<AppInfo>,
+    listView: @Composable () -> Unit,
     onQueryChange: (String) -> Unit,
     isSearchActive: Boolean,
     onActiveChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     onSearch: ((String) -> Unit),
 ) {
-    var queryAppList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
+
     var searchQuery by rememberSaveable { mutableStateOf("") }
     // 1
     val activeChanged: (Boolean) -> Unit = { active ->
@@ -835,8 +843,6 @@ fun EmbeddedSearchBar(
         onQueryChange = { query ->
             searchQuery = query
             onQueryChange(query)
-            val resultList = appList.filter { it.appName.contains(query) }
-            queryAppList = ArrayList(resultList)
         },
         // 3
         onSearch = onSearch,
@@ -897,11 +903,7 @@ fun EmbeddedSearchBar(
         }
     ) {
         // Search suggestions or results
-        LazyColumn(modifier = modifier) {
-            items(items = queryAppList){ item ->
-                ShowAppInfo(item)
-            }
-        }
+        listView()
     }
 }
 
