@@ -95,7 +95,6 @@ class NotiSyncFirebaseMessagingService() : FirebaseMessagingService() {
         val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val notificationBuilder: NotificationCompat.Builder =
             NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(appMsg.title)
                 .setContentText(appMsg.body)
                 .setAutoCancel(true)

@@ -143,7 +143,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val obj = JSONObject()
         //notification
         val notification = JSONObject()
-        notification.put("title", "[${appMsg.appName}] ${appMsg.title}")
+        notification.put("title", "${appMsg.appName} · ${appMsg.title}")
         notification.put("body", appMsg.body)
 
         //data
