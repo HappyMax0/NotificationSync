@@ -60,6 +60,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         ).createNotificationChannel(mChannel)
 
         val foregroundNotice: Notification = NotificationCompat.Builder(this, "Foreground")
+            .setSmallIcon(R.drawable.ic_notice)
             .setContentTitle(getString(R.string.notification_running))
             .setContentText(getString(R.string.notification_forwarding))
             .setOngoing(true)
