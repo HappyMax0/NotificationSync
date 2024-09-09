@@ -405,7 +405,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                                                 checked = hideSystemApp,
                                                 onCheckedChange = {
                                                     appList = getAppList(sharedPreferences, context, it)
-                                                    
+
                                                     hideSystemApp = it
                                                 }
                                             )
