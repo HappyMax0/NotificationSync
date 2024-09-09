@@ -85,7 +85,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         super.onNotificationPosted(sbn)
         var enabledPackages = mutableListOf<String>()
 
-        val extras = sbn?.notification?.extras
+        val notification = sbn?.notification
+        val extras = notification?.extras
         val packageName = sbn?.packageName
         var appName = ""
         if(packageName != null)
@@ -96,6 +97,9 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         val title = extras?.getString(Notification.EXTRA_TITLE, "")
         val body =
             extras?.getCharSequence(Notification.EXTRA_TEXT, "").toString()
+
+        val pendingIntent = notification?.contentIntent
+        Log.d(TAG, "pendingIntent $pendingIntent")
 
         val token = sharedPreferences.getString("Token", "")
 

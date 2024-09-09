@@ -160,12 +160,14 @@ class MainActivity : ComponentActivity() {
 
         val extras = intent.extras
         if(extras != null){
-            val packName = extras?.getString("packageName")
-            val appName = extras?.getString("appName")
-            val intent = Helper.GetApplicationWithPackageName(packName, this)
-            if(intent != null){
-                Log.d(TAG, "start $packName")
-                startActivity(intent)
+            val packageName = extras?.getString("packageName")
+            //val appName = extras?.getString("appName")
+            if(packageName != null){
+                val packageManager = this.packageManager
+                val intent = packageManager.getLaunchIntentForPackage(packageName)
+                if (intent != null) {
+                    startActivity(intent)
+                }
             }
         }
     }
