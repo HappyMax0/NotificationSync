@@ -13,7 +13,7 @@
     <string name="serverDescription">Forward notifications to another device</string>
     <string name="default_notification_channel_id">Default</string>
     <string name="save_btn_text">Save</string>
-    <string name="status_switch_text">Status</string>
+    <string name="status_switch_text">Start Forward</string>
     <string name="gotoAppList_btn_text">Set which apps\' notifications to forward</string>
     <string name="launch_btn_text">Start</string>
     <string name="stop_btn_text">Stop</string>
@@ -34,4 +34,6 @@
     <string name="notification_foregroundService">ForegroundService</string>
     <string name="search_text_field_clear">Clear</string>
     <string name="navigation_action_back_cd">Stop Search</string>
+    <string name="hide_system_app">Hide System App</string>
+    <string name="search">Search</string>
 </resources>

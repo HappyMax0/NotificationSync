@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
@@ -50,13 +51,17 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -285,7 +290,7 @@ fun WelcomeScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenVie
 }
 
 @Composable
-fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier) {
+fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier, onCheckedChange:()->Unit) {
     var checked by rememberSaveable {mutableStateOf(appInfo.enable)}
 
     Surface(
@@ -316,6 +321,7 @@ fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier) {
                 Switch(checked = checked, onCheckedChange = {
                     checked = it
                     appInfo.enable = it
+                    onCheckedChange()
                 })
             }
 
@@ -343,12 +349,17 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
 @Composable
 fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
     val context = LocalContext.current
+
+    var searchText by remember { mutableStateOf("") }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var hideSystemApp by remember { mutableStateOf(true) }
+
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     var queryAppList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
     thread {
-        appList = getAppList(sharedPreferences, context)
+        appList = getAppList(sharedPreferences, context, true)
 
         loading = false
     }
@@ -364,54 +375,93 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             titleContentColor = MaterialTheme.colorScheme.primary,
                         ), navigationIcon = {
-                            IconButton(onClick = navigateUp) {
+                            IconButton(onClick = {
+                                navigateUp()
+                            } ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = stringResource(id = R.string.titlebar_goback)
                                 )
                             }
                         }, actions = {
-                            IconButton(onClick = {
-                                val enabledPackages = appList.filter { it.enable }.map { it.packageName }
-                                val gson = Gson()
-                                val json = gson.toJson(enabledPackages)
-                                val editor = sharedPreferences.edit()
-                                editor.putString("EnabledPackages", json)
-                                editor.apply()
-                                navigateUp()
-                            }) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.baseline_save_24),
-                                    contentDescription = stringResource(id = R.string.save_btn_text)
+                            IconButton(onClick = { isSearchActive = true }) {
+                                Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search))
+                            }
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "more")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Text(text = stringResource(id = R.string.hide_system_app))
+
+                                            Checkbox(
+                                                checked = hideSystemApp,
+                                                onCheckedChange = {
+                                                    appList = getAppList(sharedPreferences, context, it)
+                                                    
+                                                    hideSystemApp = it
+                                                }
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+
+                                    }
                                 )
                             }
                         })
                 }
-                EmbeddedSearchBar({
-                    LazyColumn(modifier = modifier) {
-                        items(items = queryAppList){ item ->
-                            ShowAppInfo(item)
+                AnimatedVisibility(
+                    visible = isSearchActive,
+                ){
+                    EmbeddedSearchBar({
+                        LazyColumn(modifier = modifier) {
+                            items(items = queryAppList){ item ->
+                                ShowAppInfo(item, onCheckedChange =  {
+                                    val enabledPackages = appList.filter { it.enable }.map { it.packageName }
+                                    val gson = Gson()
+                                    val json = gson.toJson(enabledPackages)
+                                    val editor = sharedPreferences.edit()
+                                    editor.putString("EnabledPackages", json)
+                                    editor.apply()
+                                })
+                            }
                         }
-                    }
-                },
-                    onQueryChange = { query ->
-                        val resultList = appList.filter { it.appName.contains(query) }
-                        queryAppList = ArrayList(resultList) },
-                    isSearchActive = isSearchActive,
-                    onActiveChanged = { isSearchActive = it },
-                    onSearch = { }
-                )
+                    },
+                        onQueryChange = { query ->
+                            val resultList = appList.filter { it.appName.contains(query) }
+                            queryAppList = ArrayList(resultList) },
+                        isSearchActive = isSearchActive,
+                        onActiveChanged = { isSearchActive = it },
+                        onSearch = { }
+                    )
+                }
+
             }
         }
 
     ) { innerPadding ->
         LazyColumn(modifier = modifier.padding(innerPadding)) {
             items(items = appList){ item ->
-                ShowAppInfo(item)
+                ShowAppInfo(item,
+                    onCheckedChange =  {
+                        val enabledPackages = appList.filter { it.enable }.map { it.packageName }
+                        val gson = Gson()
+                        val json = gson.toJson(enabledPackages)
+                        val editor = sharedPreferences.edit()
+                        editor.putString("EnabledPackages", json)
+                        editor.apply()
+                    })
             }
         }
     }
-
 }
 
 @Composable
@@ -671,7 +721,8 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier
                     .align(Alignment.End)
-                    .padding(10.dp)) {
+                    .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = stringResource(R.string.status_switch_text), modifier = Modifier.align(Alignment.CenterVertically))
                     Switch(checked = enable, onCheckedChange = {
                         //enable = it
@@ -694,7 +745,7 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     }
 }
 
-private fun getAppList(sharedPreferences: SharedPreferences, context: Context):ArrayList<AppInfo>{
+private fun getAppList(sharedPreferences: SharedPreferences, context: Context, hideSystemApp:Boolean = false):ArrayList<AppInfo>{
     val appList = ArrayList<AppInfo>()
 
     val packageManager = context.packageManager
@@ -717,10 +768,14 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context):A
                 val label = info.loadLabel(packageManager)
                 val appName = label.toString()
                 val packageName = info.packageName
-                val icon: Drawable? = info.loadIcon(packageManager);
-                val enable = enabledPackages.contains(packageName);
-                val appInfo = AppInfo(appName, packageName, icon, enable)
-                appList.add(appInfo)
+
+                val isSystemApp = (packageInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                if(!(hideSystemApp && isSystemApp)){
+                    val icon: Drawable? = info.loadIcon(packageManager);
+                    val enable = enabledPackages.contains(packageName);
+                    val appInfo = AppInfo(appName, packageName, icon, enable)
+                    appList.add(appInfo)
+                }
             }
         }
     }
@@ -862,7 +917,7 @@ fun EmbeddedSearchBar(
             .padding(start = 12.dp, top = 2.dp, end = 12.dp, bottom = 12.dp)
             .fillMaxWidth()
             .animateContentSize(spring(stiffness = Spring.StiffnessHigh)),
-        placeholder = { Text("Search") },
+        placeholder = { Text(stringResource(id = R.string.search)) },
         leadingIcon = {
             if (isSearchActive) {
                 IconButton(
@@ -905,11 +960,7 @@ fun EmbeddedSearchBar(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
         tonalElevation = 0.dp,
-        windowInsets = if (isSearchActive) {
-            SearchBarDefaults.windowInsets
-        } else {
-            WindowInsets(0.dp)
-        }
+        windowInsets = WindowInsets(0.dp)
     ) {
         // Search suggestions or results
         listView()
@@ -935,46 +986,6 @@ fun ServerSettingsPreview(){
         }, onGotoAppListButtonClicked = {
             navController.navigate(NotiSyncScreen.AppList.name)
         })
-    }
-}
-
-@Preview
-@Composable
-fun ClientScreenPreview(){
-    val context = LocalContext.current
-
-    val sharedPreferences = context.getSharedPreferences("settings", MODE_PRIVATE)
-
-    val viewModel : MainScreenViewModel = viewModel()
-
-    viewModel.isInited.value = sharedPreferences.getBoolean("IsInited", true)
-
-    val navController = rememberNavController()
-
-    NotificationSyncTheme{
-        ClientScreen(sharedPreferences, viewModel, onSettingsButtonClicked = {
-            navController.navigate(NotiSyncScreen.Settings.name)
-        })
-    }
-}
-
-@Preview
-@Composable
-fun SettingsScreenPreview(){
-    val context = LocalContext.current
-
-    val sharedPreferences = context.getSharedPreferences("settings", MODE_PRIVATE)
-
-    val viewModel : MainScreenViewModel = viewModel()
-
-    viewModel.isInited.value = sharedPreferences.getBoolean("IsInited", true)
-
-    val navController = rememberNavController()
-
-    NotificationSyncTheme{
-        SettingsScreen(sharedPreferences, viewModel,
-            navigateUp = { navController.navigateUp() },
-            onResetBtnClicked = { navController.navigate(NotiSyncScreen.Reset.name) })
     }
 }
 
