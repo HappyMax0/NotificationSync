@@ -720,7 +720,7 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
             }
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier
-                    .align(Alignment.End)
+                    .fillMaxWidth()
                     .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = stringResource(R.string.status_switch_text), modifier = Modifier.align(Alignment.CenterVertically))
