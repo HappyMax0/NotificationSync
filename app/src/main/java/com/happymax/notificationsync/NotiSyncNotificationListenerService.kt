@@ -127,6 +127,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                     postToFCMServer(AppMsg(appName, packageName, title, body), token, context)
                     withContext(Dispatchers.Main) {
                         // 在这里更新 UI
+                        cancelNotification(sbn.key)
                     }
                 }
             }
