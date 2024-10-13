@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PushService</string>
+    <string name="app_name">NotificationSync</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
     <string name="first_fragment_label">First Fragment</string>
@@ -19,6 +19,7 @@
     <string name="stop_btn_text">Stop</string>
     <string name="settings_reset">Reset</string>
     <string name="client_screen_copy">Copy</string>
+    <string name="client_screen_sync_icons">Sync app icons</string>
     <string name="reset_screen_title">Confirm Reset</string>
     <string name="reset_screen_body">This will reset the app, and you will choose the client or server again</string>
     <string name="reset_screen_ok">OK</string>
@@ -36,4 +37,5 @@
     <string name="navigation_action_back_cd">Stop Search</string>
     <string name="hide_system_app">Hide System App</string>
     <string name="search">Search</string>
+    <string name="close">Close</string>
 </resources>

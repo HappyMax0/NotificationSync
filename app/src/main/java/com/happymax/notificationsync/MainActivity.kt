@@ -1,8 +1,6 @@
 package com.happymax.notificationsync
 
 import android.Manifest
-import android.app.NotificationManager
-import android.content.ComponentName
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
@@ -11,7 +9,6 @@ import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -25,7 +22,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -50,11 +46,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -75,6 +69,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
@@ -94,7 +89,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -344,7 +338,6 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
     return bitmap
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
@@ -367,26 +360,50 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
     Scaffold(
         topBar = {
             Column {
-                AnimatedVisibility(
-                    visible = !isSearchActive,
-                ) {
-                    TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)},
-                        modifier = Modifier, colors = topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            titleContentColor = MaterialTheme.colorScheme.primary,
-                        ), navigationIcon = {
-                            IconButton(onClick = {
-                                navigateUp()
-                            } ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(id = R.string.titlebar_goback)
-                                )
-                            }
-                        }, actions = {
+                TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)},
+                    modifier = Modifier, colors = topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                    ), navigationIcon = {
+                        IconButton(onClick = {
+                            navigateUp()
+                        } ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(id = R.string.titlebar_goback)
+                            )
+                        }
+                    }, actions = {
+                        if(!isSearchActive) {
                             IconButton(onClick = { isSearchActive = true }) {
                                 Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search))
                             }
+                        }else
+                        {
+                            Row {
+                                TextField(
+                                    value = searchText,
+                                    onValueChange = { query ->
+                                        searchText = query
+                                        val resultList = appList.filter { it.appName.contains(searchText, ignoreCase = true) }
+                                        queryAppList = ArrayList(resultList)
+                                    },
+                                    placeholder = { Text(stringResource(id = R.string.search)) },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .width(200.dp)
+                                        .background(Color.Transparent),
+                                    colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent, focusedContainerColor = Color.Transparent)
+                                )
+                                IconButton(onClick = { isSearchActive = false
+                                    appList = getAppList(sharedPreferences, context, true)
+                                                     }, modifier = Modifier
+                                    .align(Alignment.CenterVertically)) {
+                                    Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.close))
+                                }
+                            }
+                        }
+                        Column {
                             IconButton(onClick = { menuExpanded = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "more")
                             }
@@ -416,40 +433,20 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                                     }
                                 )
                             }
-                        })
-                }
-                AnimatedVisibility(
-                    visible = isSearchActive,
-                ){
-                    EmbeddedSearchBar({
-                        LazyColumn(modifier = modifier) {
-                            items(items = queryAppList){ item ->
-                                ShowAppInfo(item, onCheckedChange =  {
-                                    val enabledPackages = appList.filter { it.enable }.map { it.packageName }
-                                    val gson = Gson()
-                                    val json = gson.toJson(enabledPackages)
-                                    val editor = sharedPreferences.edit()
-                                    editor.putString("EnabledPackages", json)
-                                    editor.apply()
-                                })
-                            }
                         }
-                    },
-                        onQueryChange = { query ->
-                            val resultList = appList.filter { it.appName.contains(query) }
-                            queryAppList = ArrayList(resultList) },
-                        isSearchActive = isSearchActive,
-                        onActiveChanged = { isSearchActive = it },
-                        onSearch = { }
-                    )
-                }
-
+                    })
             }
         }
 
     ) { innerPadding ->
         LazyColumn(modifier = modifier.padding(innerPadding)) {
-            items(items = appList){ item ->
+            var itemsList = appList
+
+            if(isSearchActive){
+                itemsList = queryAppList
+            }
+
+            items(items = itemsList){ item ->
                 ShowAppInfo(item,
                     onCheckedChange =  {
                         val enabledPackages = appList.filter { it.enable }.map { it.packageName }
@@ -482,7 +479,6 @@ fun ProgressDialog(showDialog: Boolean, onDismiss: () -> Unit) {
         }
     }
 }
-
 
 @Composable
 fun MainScreen(navController: NavHostController = rememberNavController(),
@@ -627,6 +623,56 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                     Text(text = stringResource(id = R.string.client_screen_copy))
                 }
             }
+            Button(
+                onClick = { SyncAppIcons(context) }, modifier = Modifier
+                    .padding(10.dp)
+                    .align(Alignment.CenterHorizontally)
+            ) {
+                Text(text = stringResource(R.string.client_screen_sync_icons))
+            }
+        }
+    }
+}
+
+fun deleteDirectory(directory: File) {
+    if (directory.exists()) {
+        directory.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                deleteDirectory(file)
+            } else {
+                file.delete()
+            }
+        }
+        directory.delete()
+    }
+}
+
+fun SyncAppIcons(context: Context){
+    val fileDir = "${context.getFilesDir().getAbsolutePath()}/Icons"
+    val directory = File(fileDir)
+    deleteDirectory(directory)
+
+    val packageManager = context.packageManager
+    val packageInfos = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+
+    for (info in packageInfos){
+        val packageInfo: PackageInfo =
+            packageManager.getPackageInfo(info.packageName, PackageManager.GET_PERMISSIONS)
+        val requestedPermissions = packageInfo.requestedPermissions;
+        if(requestedPermissions != null) {
+            if(requestedPermissions.contains("android.permission.POST_NOTIFICATIONS")){
+                val label = info.loadLabel(packageManager)
+                val appName = label.toString()
+                val packageName = info.packageName
+                val icon: Drawable? = info.loadIcon(packageManager);
+                if(icon != null)
+                {
+                    val bitmap: Bitmap = (icon as BitmapDrawable).bitmap
+                    val outputStream: FileOutputStream = FileOutputStream(File("${fileDir}/${packageName}.png"))
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                    outputStream.close()
+                }
+            }
         }
     }
 }
@@ -718,6 +764,7 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
             ){
                 Text(text = stringResource(R.string.save_btn_text))
             }
+
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(modifier = Modifier
                     .fillMaxWidth()
@@ -783,7 +830,6 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context, h
     appList.sortWith(compareBy{ it.appName })
     return  appList
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
