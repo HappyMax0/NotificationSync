@@ -112,6 +112,10 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.happymax.basicscodelab.ui.theme.NotificationSyncTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -285,7 +289,7 @@ fun WelcomeScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenVie
 
 @Composable
 fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier, onCheckedChange:()->Unit) {
-    var checked by rememberSaveable {mutableStateOf(appInfo.enable)}
+    var isChecked by remember {mutableStateOf(appInfo.enable)}
 
     Surface(
         modifier = modifier.padding(vertical = 4.dp, horizontal = 8.dp),
@@ -312,10 +316,11 @@ fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier, onCheckedChange
                         modifier = modifier
                     )
                 }
-                Switch(checked = checked, onCheckedChange = {
-                    checked = it
-                    appInfo.enable = it
-                    onCheckedChange()
+                Checkbox(checked = isChecked,
+                    onCheckedChange = {
+                        isChecked = it
+                        appInfo.enable = it
+                        onCheckedChange()
                 })
             }
 
@@ -343,14 +348,16 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
 fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
     val context = LocalContext.current
 
-    var searchText by remember { mutableStateOf("") }
+    var searchText by rememberSaveable { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
-    var hideSystemApp by remember { mutableStateOf(true) }
+    var hideSystemApp by remember { mutableStateOf(false) }
 
-    var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
-    var queryAppList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
+    val queryAppList = appList.filter {
+        it.appName.contains(searchText)}
+
     thread {
         appList = getAppList(sharedPreferences, context, true)
 
@@ -360,7 +367,10 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(title = { Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)},
+                TopAppBar(title = {
+                    if(!isSearchActive)
+                        Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)
+                                  },
                     modifier = Modifier, colors = topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         titleContentColor = MaterialTheme.colorScheme.primary,
@@ -385,8 +395,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                                     value = searchText,
                                     onValueChange = { query ->
                                         searchText = query
-                                        val resultList = appList.filter { it.appName.contains(searchText, ignoreCase = true) }
-                                        queryAppList = ArrayList(resultList)
+
                                     },
                                     placeholder = { Text(stringResource(id = R.string.search)) },
                                     singleLine = true,
@@ -395,43 +404,13 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                                         .background(Color.Transparent),
                                     colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent, focusedContainerColor = Color.Transparent)
                                 )
-                                IconButton(onClick = { isSearchActive = false
-                                    appList = getAppList(sharedPreferences, context, true)
+                                IconButton(onClick = {
+                                    isSearchActive = false
+                                    searchText = ""
                                                      }, modifier = Modifier
                                     .align(Alignment.CenterVertically)) {
                                     Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.close))
                                 }
-                            }
-                        }
-                        Column {
-                            IconButton(onClick = { menuExpanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "more")
-                            }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Text(text = stringResource(id = R.string.hide_system_app))
-
-                                            Checkbox(
-                                                checked = hideSystemApp,
-                                                onCheckedChange = {
-                                                    appList = getAppList(sharedPreferences, context, it)
-
-                                                    hideSystemApp = it
-                                                }
-                                            )
-                                        }
-                                    },
-                                    onClick = {
-
-                                    }
-                                )
                             }
                         }
                     })
@@ -440,15 +419,18 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
 
     ) { innerPadding ->
         LazyColumn(modifier = modifier.padding(innerPadding)) {
-            var itemsList = appList
-
-            if(isSearchActive){
-                itemsList = queryAppList
-            }
-
-            items(items = itemsList){ item ->
+            items(items = queryAppList){ item ->
                 ShowAppInfo(item,
                     onCheckedChange =  {
+                        if(isSearchActive){
+                            val app = appList.firstOrNull { it.appName == item.appName }
+                            if(app != null)
+                                app.enable = item.enable
+                        }
+
+                        val index = appList.indexOf(item)
+                        appList[index] = item.copy(enable = item.enable)
+
                         val enabledPackages = appList.filter { it.enable }.map { it.packageName }
                         val gson = Gson()
                         val json = gson.toJson(enabledPackages)
@@ -459,6 +441,11 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
             }
         }
     }
+}
+
+@Composable
+fun NotificationFilterScreen(){
+
 }
 
 @Composable

@@ -36,6 +36,7 @@
     <string name="search_text_field_clear">Clear</string>
     <string name="navigation_action_back_cd">Stop Search</string>
     <string name="hide_system_app">Hide System App</string>
+    <string name="select_all">SelectAll</string>
     <string name="search">Search</string>
     <string name="close">Close</string>
 </resources>
