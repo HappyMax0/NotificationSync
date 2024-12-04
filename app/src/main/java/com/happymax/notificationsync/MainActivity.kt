@@ -25,27 +25,41 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -57,6 +71,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +103,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -108,6 +124,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.tasks.OnCompleteListener
+import com.google.android.material.internal.EdgeToEdgeUtils
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -288,40 +305,76 @@ fun WelcomeScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenVie
 }
 
 @Composable
-fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier, onCheckedChange:()->Unit) {
-    var isChecked by remember {mutableStateOf(appInfo.enable)}
+fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier, onCheckedChange:()->Unit, onEnabledChange:()->Unit) {
+    var isEnabled by remember {
+        mutableStateOf(appInfo.enable)
+    }
+
+    var isChecked by remember {
+        mutableStateOf(appInfo.clearNotification)
+    }
 
     Surface(
-        modifier = modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+        modifier = modifier,
         content =  {
-            Row(modifier = Modifier
-                .padding(12.dp)
-                .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )){
-                if(appInfo.icon != null)
-                    Image(bitmap = drawableToBitmap(appInfo.icon).asImageBitmap(), contentDescription = appInfo.appName,
-                        modifier = Modifier
-                            .width(60.dp)
-                            .height(60.dp)
-                            .padding(10.dp))
-                Column(modifier = Modifier
-                    .weight(1f)
-                    .align(Alignment.CenterVertically)) {
-                    Text(
-                        text = "${appInfo.appName}",
-                        modifier = modifier
-                    )
+            Column(modifier=modifier.fillMaxWidth()) {
+                Row(modifier = modifier
+                    .fillMaxWidth()
+                    .padding(10.dp)
+                    , horizontalArrangement = Arrangement.SpaceBetween){
+                    Box(modifier=modifier.weight(1f)){
+                        Column {
+                            Row {
+                                if(appInfo.icon != null)
+                                    Image(bitmap = drawableToBitmap(appInfo.icon).asImageBitmap(), contentDescription = appInfo.appName,
+                                        modifier = Modifier
+                                            .width(60.dp)
+                                            .height(60.dp)
+                                            .padding(10.dp))
+                                Column(modifier = Modifier
+                                    .align(Alignment.CenterVertically)) {
+                                    Text(
+                                        text = appInfo.appName,
+                                        modifier = modifier
+                                    )
+                                    Text(
+                                        text = appInfo.packageName,
+                                        modifier = modifier,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Row{
+                        Switch(checked = isEnabled,
+                            onCheckedChange = {
+                                isEnabled = it
+                                appInfo.enable = isEnabled
+                                onEnabledChange()
+                            })
+                    }
                 }
-                Checkbox(checked = isChecked,
-                    onCheckedChange = {
-                        isChecked = it
-                        appInfo.enable = it
-                        onCheckedChange()
-                })
+                if(isEnabled){
+                    Row(modifier = modifier
+                        .fillMaxWidth()
+                        .padding(10.dp,0.dp)
+                        , horizontalArrangement = Arrangement.SpaceBetween) {
+                        Box(modifier=modifier.weight(1f)){
+
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End){
+                            Text(text = stringResource(id = R.string.clear_notification_after_foward), fontSize = 10.sp)
+                            Checkbox(checked = isChecked, onCheckedChange = {
+                                isChecked = it
+                                appInfo.clearNotification = isChecked
+                                onCheckedChange()
+                            })
+                        }
+                    }
+
+                }
             }
 
         })
@@ -343,109 +396,191 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
     return bitmap
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
     val context = LocalContext.current
 
+    val isDarkTheme = isSystemInDarkTheme()
+    val topBarColor by remember {
+        mutableStateOf(if (isDarkTheme) Color.Black else Color.White)
+    }
+    val listState = rememberLazyListState()
     var searchText by rememberSaveable { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
-    var hideSystemApp by remember { mutableStateOf(false) }
+    var hideSystemApp by remember { mutableStateOf(true) }
 
-    var loading by remember { mutableStateOf(true) }
+//    var loading by remember { mutableStateOf(true) }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
-    var appList by rememberSaveable {mutableStateOf(ArrayList<AppInfo>())}
-    val queryAppList = appList.filter {
-        it.appName.contains(searchText)}
+    var appList by rememberSaveable {mutableStateOf(getAppList(sharedPreferences, context))}
 
-    thread {
-        appList = getAppList(sharedPreferences, context, true)
+//    val unselectedAppList = appList.filter {
+//        it.enable == false
+//    }
+    val queryAppList = appList
+        .filter { it.appName.contains(searchText) }.filter { it.isSystem == !hideSystemApp }
+        .groupBy { it.appName.first()
+        }
 
-        loading = false
-    }
-    ProgressDialog(showDialog = loading, onDismiss = { loading = false })
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(title = {
-                    if(!isSearchActive)
-                        Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)
-                                  },
-                    modifier = Modifier, colors = topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.primary,
-                    ), navigationIcon = {
-                        IconButton(onClick = {
-                            navigateUp()
-                        } ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(id = R.string.titlebar_goback)
-                            )
-                        }
-                    }, actions = {
-                        if(!isSearchActive) {
-                            IconButton(onClick = { isSearchActive = true }) {
-                                Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search))
-                            }
-                        }else
-                        {
-                            Row {
-                                TextField(
-                                    value = searchText,
-                                    onValueChange = { query ->
-                                        searchText = query
+//        thread {
+//        appList = getAppList(sharedPreferences, context)
+//        loading = false
+//    }
 
-                                    },
-                                    placeholder = { Text(stringResource(id = R.string.search)) },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .width(200.dp)
-                                        .background(Color.Transparent),
-                                    colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent, focusedContainerColor = Color.Transparent)
+    Box(modifier = modifier.fillMaxSize()){
+        //ProgressDialog(showDialog = loading, onDismiss = { loading = false })
+        Scaffold(
+            topBar = {
+                Column {
+                    TopAppBar(title = {
+                        if(!isSearchActive)
+                            Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)
+                    },
+                        modifier = Modifier, colors = topAppBarColors(
+                            containerColor = topBarColor,
+                            titleContentColor = if (isDarkTheme) Color.White else Color.Black,
+                        ), navigationIcon = {
+                            IconButton(onClick = {
+                                navigateUp()
+                            } ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(id = R.string.titlebar_goback)
                                 )
-                                IconButton(onClick = {
-                                    isSearchActive = false
-                                    searchText = ""
-                                                     }, modifier = Modifier
-                                    .align(Alignment.CenterVertically)) {
-                                    Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.close))
+                            }
+                        }, actions = {
+                            if(!isSearchActive) {
+                                IconButton(onClick = { isSearchActive = true }) {
+                                    Icon(Icons.Default.Search, contentDescription = stringResource(id = R.string.search))
+                                }
+                            }else
+                            {
+                                Row {
+                                    TextField(
+                                        value = searchText,
+                                        onValueChange = { query ->
+                                            searchText = query
+
+                                        },
+                                        placeholder = { Text(stringResource(id = R.string.search)) },
+                                        singleLine = true,
+                                        modifier = Modifier
+                                            .width(200.dp)
+                                            .background(Color.Transparent),
+                                        colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent, focusedContainerColor = Color.Transparent)
+                                    )
+                                    IconButton(onClick = {
+                                        isSearchActive = false
+                                        searchText = ""
+                                    }, modifier = Modifier
+                                        .align(Alignment.CenterVertically)) {
+                                        Icon(Icons.Default.Close, contentDescription = stringResource(id = R.string.close))
+                                    }
                                 }
                             }
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "more")
+                            }
+                            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                DropdownMenuItem(text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = stringResource(id = R.string.hide_system_app))
+
+                                        Checkbox(
+                                            checked = hideSystemApp,
+                                            onCheckedChange = {
+                                                hideSystemApp = it
+                                            })
+                                    }
+
+                                }, onClick = { hideSystemApp = !hideSystemApp })
+                            }
+                        })
+                }
+            }
+        ) { innerPadding ->
+            Row {
+                Box(modifier = Modifier
+                    .weight(1f)
+                    .padding(innerPadding), )
+                {
+                    LazyColumn(state = listState) {
+                        queryAppList.forEach{(name, list) ->
+                            stickyHeader {
+                                Text(
+                                    text = name.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.background)
+                                        .padding(8.dp)
+                                )
+                            }
+                                items(items = list) { item ->
+                                ShowAppInfo(item,
+                                    onEnabledChange = {
+                            if ( isSearchActive) {
+                                val app = appList.firstOrNull { it.appName == item.appName }
+                                if (app != null) {
+                                    app.enable = item.enable
+                                    app.clearNotification = item.clearNotification
+                                }
+
+                            }
+
+                            val index = appList.indexOf(item)
+                            appList[index] = item.copy(enable = item.enable, clearNotification = item.clearNotification)
+                                    },
+                                    onCheckedChange = {
+                                        if ( isSearchActive) {
+                                            val app = appList.firstOrNull { it.appName == item.appName }
+                                            if (app != null) {
+                                                app.enable = item.enable
+                                                app.clearNotification = item.clearNotification
+                                            }
+
+                                        }
+
+                                        val index = appList.indexOf(item)
+                                        appList[index] = item.copy(enable = item.enable, clearNotification = item.clearNotification)
+
+                                    })
+                            }
+
                         }
-                    })
+
+                    }
+                }
             }
         }
 
-    ) { innerPadding ->
-        LazyColumn(modifier = modifier.padding(innerPadding)) {
-            items(items = queryAppList){ item ->
-                ShowAppInfo(item,
-                    onCheckedChange =  {
-                        if(isSearchActive){
-                            val app = appList.firstOrNull { it.appName == item.appName }
-                            if(app != null)
-                                app.enable = item.enable
-                        }
-
-                        val index = appList.indexOf(item)
-                        appList[index] = item.copy(enable = item.enable)
-
-                        val enabledPackages = appList.filter { it.enable }.map { it.packageName }
-                        val gson = Gson()
-                        val json = gson.toJson(enabledPackages)
-                        val editor = sharedPreferences.edit()
-                        editor.putString("EnabledPackages", json)
-                        editor.apply()
-                    })
-            }
+        FloatingActionButton(
+            onClick = {
+                saveEnabledPackages(appList, sharedPreferences)
+                navigateUp()
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(imageVector = Icons.Default.Done, contentDescription = "Add")
         }
     }
 }
 
-@Composable
-fun NotificationFilterScreen(){
+fun saveEnabledPackages(appList:ArrayList<AppInfo>, sharedPreferences: SharedPreferences){
+    val enabledPackages = mutableListOf<EnabledApp>()
+    for (appInfo in appList){
+        if(appInfo.enable){
+            enabledPackages.add(EnabledApp(appInfo.packageName, appInfo.clearNotification))
+        }
+    }
 
+    val gson = Gson()
+    val json = gson.toJson(enabledPackages)
+    val editor = sharedPreferences.edit()
+    editor.putString("EnabledPackages", json)
+    editor.apply()
 }
 
 @Composable
@@ -610,13 +745,7 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                     Text(text = stringResource(id = R.string.client_screen_copy))
                 }
             }
-            Button(
-                onClick = { SyncAppIcons(context) }, modifier = Modifier
-                    .padding(10.dp)
-                    .align(Alignment.CenterHorizontally)
-            ) {
-                Text(text = stringResource(R.string.client_screen_sync_icons))
-            }
+
         }
     }
 }
@@ -672,6 +801,11 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     var enable by rememberSaveable {mutableStateOf(false)}
     var token by rememberSaveable {mutableStateOf(sharedPreferences.getString("Token", ""))}
 
+    val isDarkTheme = isSystemInDarkTheme()
+    val topBarColor by remember {
+        mutableStateOf(if (isDarkTheme) Color.Black else Color.White)
+    }
+
     val assetManager = context.assets
     val filename = "notificationsync-e95aa-firebase-adminsdk-yuwd4-33db92faa1.json" // 替换为你的 asset 文件名
 
@@ -708,9 +842,9 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     Scaffold(
         topBar = {
             TopAppBar(title = { Text(stringResource(id = R.string.server), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.primary,
-            ), actions = {
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                titleContentColor = if (isDarkTheme) Color.White else Color.Black,
+                ), actions = {
                 IconButton(onClick = onSettingsButtonClicked) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
@@ -740,19 +874,30 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                 )
             }
 
-            Button(
-                onClick  = {
-                    val editor = sharedPreferences.edit()
-                    editor.putString("Token", token)
-                    editor.apply()
-                }, modifier = Modifier
-                    .padding(10.dp)
-                    .align(Alignment.CenterHorizontally)
-            ){
-                Text(text = stringResource(R.string.save_btn_text))
+            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(modifier=Modifier.weight(1f)){
+
+                    }
+                    Button(
+                        onClick  = {
+                            val editor = sharedPreferences.edit()
+                            editor.putString("Token", token)
+                            editor.apply()
+                        }, modifier = Modifier
+                            .padding(10.dp)
+                    ){
+                        Text(text = stringResource(R.string.save_btn_text))
+                    }
+                }
             }
 
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
                 Row(modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp),
@@ -768,27 +913,38 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                 }
             }
 
-            Button(
-                onClick = onGotoAppListButtonClicked, modifier = Modifier
-                    .padding(10.dp)
-                    .align(Alignment.CenterHorizontally)
-            ) {
-                Text(text = stringResource(R.string.gotoAppList_btn_text))
+            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween){
+                    Text(text = stringResource(R.string.add_apps), modifier = Modifier.align(Alignment.CenterVertically))
+                    Button(
+                        onClick = {
+                            //openAddAppAlertDialog = true
+                            onGotoAppListButtonClicked()
+                        }, modifier = Modifier
+                            .padding(10.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = stringResource(id = R.string.add_apps) )
+                    }
+                }
             }
+
         }
     }
 }
 
-private fun getAppList(sharedPreferences: SharedPreferences, context: Context, hideSystemApp:Boolean = false):ArrayList<AppInfo>{
+private fun getAppList(sharedPreferences: SharedPreferences, context: Context):ArrayList<AppInfo>{
     val appList = ArrayList<AppInfo>()
 
     val packageManager = context.packageManager
     val packageInfos = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
 
-    var enabledPackages = mutableListOf<String>()
+    var enabledPackages = mutableListOf<EnabledApp>()
     val json = sharedPreferences.getString("EnabledPackages", null)
     if(json != null){
-        val type = object : TypeToken<List<String>>() {}.type
+        val type = object : TypeToken<List<EnabledApp>>() {}.type
         val gson = Gson()
         enabledPackages = gson.fromJson(json, type)
     }
@@ -802,14 +958,13 @@ private fun getAppList(sharedPreferences: SharedPreferences, context: Context, h
                 val label = info.loadLabel(packageManager)
                 val appName = label.toString()
                 val packageName = info.packageName
-
                 val isSystemApp = (packageInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                if(!(hideSystemApp && isSystemApp)){
-                    val icon: Drawable? = info.loadIcon(packageManager);
-                    val enable = enabledPackages.contains(packageName);
-                    val appInfo = AppInfo(appName, packageName, icon, enable)
-                    appList.add(appInfo)
-                }
+                val icon: Drawable? = info.loadIcon(packageManager);
+                val savedAppInfo = enabledPackages.find { it.packageName.equals(packageName) }
+                val enable = savedAppInfo != null
+                val clearNoti = if(enable) savedAppInfo?.clearNotification else false
+                val appInfo = AppInfo(appName, packageName, icon, isSystemApp, enable, if(clearNoti==null) false else clearNoti)
+                appList.add(appInfo)
             }
         }
     }

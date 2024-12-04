@@ -39,4 +39,7 @@
     <string name="select_all">SelectAll</string>
     <string name="search">Search</string>
     <string name="close">Close</string>
+    <string name="add_apps">Add Apps</string>
+    <string name="add_apps_done">Done</string>
+    <string name="clear_notification_after_foward">Clear notification after foward</string>
 </resources>

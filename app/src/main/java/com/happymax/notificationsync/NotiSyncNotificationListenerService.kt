@@ -83,7 +83,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        var enabledPackages = mutableListOf<String>()
+        var enabledPackages = mutableListOf<EnabledApp>()
 
         val notification = sbn?.notification
         val extras = notification?.extras
@@ -105,7 +105,7 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
 
         val json = sharedPreferences.getString("EnabledPackages", null)
         if(json != null){
-            val type = object : TypeToken<List<String>>() {}.type
+            val type = object : TypeToken<List<EnabledApp>>() {}.type
             val gson = Gson()
             enabledPackages = gson.fromJson(json, type)
         }
@@ -117,7 +117,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
         4.Select project settings.
         5.In the Cloud Messaging tab you can find your Sender ID.
         */
-        if(!token.isNullOrEmpty() && enabledPackages.contains(packageName)){
+        val appInfo = enabledPackages.find {it.packageName.equals(packageName)}
+        if(!token.isNullOrEmpty() && appInfo!=null){
             Log.d(TAG, "send to $token")
 
             if(title != null) {
@@ -127,7 +128,8 @@ class NotiSyncNotificationListenerService : NotificationListenerService() {
                     postToFCMServer(AppMsg(appName, packageName, title, body), token, context)
                     withContext(Dispatchers.Main) {
                         // 在这里更新 UI
-                        cancelNotification(sbn.key)
+                        if(appInfo.clearNotification == true)
+                            cancelNotification(sbn.key)
                     }
                 }
             }
