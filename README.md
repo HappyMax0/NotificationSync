@@ -11,3 +11,11 @@ and your main device can receive fcm push.
 
 and also the samsung china has cooperated with Getui and Jiguang Push, to provide unified push service, but only few 
 chinese apps use it to push ads, not even important information.
+
+![WelcomeScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213310_NotificationSync.jpg)
+
+![ServerScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213244_NotificationSync.jpg)
+
+![AppListScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213259_NotificationSync.jpg)
+
+
