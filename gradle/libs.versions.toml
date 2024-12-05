@@ -1,4 +1,5 @@
 [versions]
+accompanistSystemuicontroller = "<latest_version>"
 agp = "8.3.1"
 composeBom = "2024.05.00"
 composeBomVersion = "2023.03.00"
@@ -17,6 +18,7 @@ navigationUiKtx = "2.6.0"
 workRuntimeKtx = "2.9.0"
 
 [libraries]
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanistSystemuicontroller" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-bom-v20230300 = { module = "androidx.compose:compose-bom", version.ref = "composeBomVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

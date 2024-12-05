@@ -401,34 +401,20 @@ fun drawableToBitmap(drawable: Drawable): Bitmap {
 fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Modifier, navigateUp: () -> Unit){
     val context = LocalContext.current
 
-    val isDarkTheme = isSystemInDarkTheme()
-    val topBarColor by remember {
-        mutableStateOf(if (isDarkTheme) Color.Black else Color.White)
-    }
     val listState = rememberLazyListState()
     var searchText by rememberSaveable { mutableStateOf("") }
     var menuExpanded by remember { mutableStateOf(false) }
     var hideSystemApp by remember { mutableStateOf(true) }
 
-//    var loading by remember { mutableStateOf(true) }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var appList by rememberSaveable {mutableStateOf(getAppList(sharedPreferences, context))}
 
-//    val unselectedAppList = appList.filter {
-//        it.enable == false
-//    }
     val queryAppList = appList
         .filter { it.appName.contains(searchText) }.filter { it.isSystem == !hideSystemApp }
         .groupBy { it.appName.first()
         }
 
-//        thread {
-//        appList = getAppList(sharedPreferences, context)
-//        loading = false
-//    }
-
     Box(modifier = modifier.fillMaxSize()){
-        //ProgressDialog(showDialog = loading, onDismiss = { loading = false })
         Scaffold(
             topBar = {
                 Column {
@@ -436,10 +422,8 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                         if(!isSearchActive)
                             Text(stringResource(id = R.string.appList), style = MaterialTheme.typography.titleLarge)
                     },
-                        modifier = Modifier, colors = topAppBarColors(
-                            containerColor = topBarColor,
-                            titleContentColor = if (isDarkTheme) Color.White else Color.Black,
-                        ), navigationIcon = {
+                        modifier = Modifier, colors = TopAppBarColors(containerColor = MaterialTheme.colorScheme.primary, actionIconContentColor = Color.White, navigationIconContentColor = Color.White,
+                            scrolledContainerColor = Color.White, titleContentColor = Color.White), navigationIcon = {
                             IconButton(onClick = {
                                 navigateUp()
                             } ) {
@@ -467,7 +451,7 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
                                         modifier = Modifier
                                             .width(200.dp)
                                             .background(Color.Transparent),
-                                        colors = TextFieldDefaults.colors(unfocusedContainerColor = Color.Transparent, focusedContainerColor = Color.Transparent)
+                                        colors = TextFieldDefaults.colors(focusedTextColor = Color.White, disabledPlaceholderColor = Color.White, unfocusedContainerColor = Color.Transparent, focusedContainerColor = Color.Transparent)
                                     )
                                     IconButton(onClick = {
                                         isSearchActive = false
@@ -700,10 +684,8 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
         editor.apply()
     })
 
-    Scaffold(topBar = { TopAppBar( title = { Text(stringResource(id = R.string.client), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        titleContentColor = MaterialTheme.colorScheme.primary,
-    ), actions = {
+    Scaffold(topBar = { TopAppBar( title = { Text(stringResource(id = R.string.client), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = TopAppBarColors(containerColor = MaterialTheme.colorScheme.primary, actionIconContentColor = Color.White, navigationIconContentColor = Color.White,
+        scrolledContainerColor = Color.White, titleContentColor = Color.White), actions = {
         IconButton(onClick = onSettingsButtonClicked) {
             Icon(
                 imageVector = Icons.Filled.Settings,
@@ -800,12 +782,7 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     val context = LocalContext.current
     var enable by rememberSaveable {mutableStateOf(false)}
     var token by rememberSaveable {mutableStateOf(sharedPreferences.getString("Token", ""))}
-
-    val isDarkTheme = isSystemInDarkTheme()
-    val topBarColor by remember {
-        mutableStateOf(if (isDarkTheme) Color.Black else Color.White)
-    }
-
+    var loading by remember { mutableStateOf(false) }
     val assetManager = context.assets
     val filename = "notificationsync-e95aa-firebase-adminsdk-yuwd4-33db92faa1.json" // 替换为你的 asset 文件名
 
@@ -839,12 +816,12 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
         }
     }
 
+    ProgressDialog(showDialog = loading, onDismiss = { loading = false })
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(id = R.string.server), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                titleContentColor = if (isDarkTheme) Color.White else Color.Black,
-                ), actions = {
+            TopAppBar(title = { Text(stringResource(id = R.string.server), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = TopAppBarColors(containerColor = MaterialTheme.colorScheme.primary, actionIconContentColor = Color.White, navigationIconContentColor = Color.White,
+                scrolledContainerColor = Color.White, titleContentColor = Color.White)
+                , actions = {
                 IconButton(onClick = onSettingsButtonClicked) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
@@ -921,7 +898,7 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                     Text(text = stringResource(R.string.add_apps), modifier = Modifier.align(Alignment.CenterVertically))
                     Button(
                         onClick = {
-                            //openAddAppAlertDialog = true
+                            loading = true
                             onGotoAppListButtonClicked()
                         }, modifier = Modifier
                             .padding(10.dp)
@@ -980,10 +957,8 @@ fun SettingsScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenVi
     Scaffold(
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors = TopAppBarColors(containerColor = MaterialTheme.colorScheme.primary, actionIconContentColor = Color.White, navigationIconContentColor = Color.White,
+                    scrolledContainerColor = Color.White, titleContentColor = Color.White),
                 title = {
                     Text("Settings")
                 },
