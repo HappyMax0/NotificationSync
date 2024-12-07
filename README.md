@@ -18,6 +18,10 @@ chinese apps use it to push ads, not even important information.
 
 ![AppListScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213259_NotificationSync.jpg)
 
+![ShareTokenUseQRCode](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241207_171706_NotificationSync.jpg)
+
+![UseGoogleLensToScanQRCode](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241207_171741_Google.jpg)
+
 
 您可以使用一个华为或小米或oppo或vivo或魅族设备作为服务器，
 将hmsPush或miPush或oppoPush或vivoPush或meizuPush的通知转发到你的主要日常设备，如三星galaxy、google pixel、索尼xperia等。
