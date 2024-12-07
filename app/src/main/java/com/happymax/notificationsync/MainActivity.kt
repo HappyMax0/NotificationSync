@@ -13,6 +13,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -94,6 +95,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -720,7 +722,9 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                 .fillMaxWidth()
                 .padding(10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween){
-                Box(modifier=Modifier.weight(1f).align(Alignment.CenterVertically)){
+                Box(modifier= Modifier
+                    .weight(1f)
+                    .align(Alignment.CenterVertically)){
                     Row {
                         IconButton(onClick = { openQRCodeDialog = true }) {
                             Icon(imageVector = Icons.Filled.Share,
@@ -915,8 +919,22 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                         .padding(10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(modifier=Modifier.weight(1f)){
-
+                    Box(modifier= Modifier
+                        .weight(1f)
+                        .align(Alignment.CenterVertically)){
+                        Row {
+                            IconButton(onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW)
+                                intent.data = Uri.parse("google.lens://")
+                                if (intent.resolveActivity(context.packageManager) != null)
+                                {
+                                    context.startActivity(intent)
+                                } }) {
+                                Icon(painter = painterResource(id = R.drawable.baseline_photo_camera_24),
+                                    contentDescription = stringResource(id = R.string.share_token)
+                                )
+                            }
+                        }
                     }
                     Button(
                         onClick  = {
