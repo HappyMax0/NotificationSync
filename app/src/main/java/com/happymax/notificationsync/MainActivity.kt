@@ -764,10 +764,10 @@ fun TokenQRCodeScreen(
         text = {
             if(!token.isNullOrEmpty()){
                 val barcodeEncoder = BarcodeEncoder()
-                val bitMatrix = barcodeEncoder.encode(token, BarcodeFormat.QR_CODE, 400, 400)
-                val bitmap = Bitmap.createBitmap(400, 400, Bitmap.Config.RGB_565)
-                for (x in 0..399) {
-                    for (y in 0..399) {
+                val bitMatrix = barcodeEncoder.encode(token, BarcodeFormat.QR_CODE, 800, 800)
+                val bitmap = Bitmap.createBitmap(800, 800, Bitmap.Config.RGB_565)
+                for (x in 0..799) {
+                    for (y in 0..799) {
                         bitmap.setPixel(x, y, if (bitMatrix[x, y]) blackColor else whiteColor)
                     }
                 }
