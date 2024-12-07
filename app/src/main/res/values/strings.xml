@@ -42,4 +42,7 @@
     <string name="add_apps">Add Apps</string>
     <string name="add_apps_done">Done</string>
     <string name="clear_notification_after_foward">Clear notification after foward</string>
+    <string name="share_token">Share Token</string>
+    <string name="token_qrcode">Token QRCode</string>
+    <string name="token_qrcode_confirm">Confirm</string>
 </resources>

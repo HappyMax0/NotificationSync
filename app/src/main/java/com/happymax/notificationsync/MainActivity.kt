@@ -28,41 +28,33 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -87,8 +79,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -103,7 +93,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -124,20 +113,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.tasks.OnCompleteListener
-import com.google.android.material.internal.EdgeToEdgeUtils
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.WriterException
 import com.happymax.basicscodelab.ui.theme.NotificationSyncTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import kotlin.concurrent.thread
 
 
 enum class NotiSyncScreen(@StringRes val title:Int) {
@@ -359,7 +345,7 @@ fun ShowAppInfo(appInfo: AppInfo, modifier: Modifier = Modifier, onCheckedChange
                 if(isEnabled){
                     Row(modifier = modifier
                         .fillMaxWidth()
-                        .padding(10.dp,0.dp)
+                        .padding(10.dp, 0.dp)
                         , horizontalArrangement = Arrangement.SpaceBetween) {
                         Box(modifier=modifier.weight(1f)){
 
@@ -484,9 +470,11 @@ fun AppListScreen(sharedPreferences: SharedPreferences, modifier: Modifier = Mod
             }
         ) { innerPadding ->
             Row {
-                Box(modifier = Modifier
-                    .weight(1f)
-                    .padding(innerPadding), )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(innerPadding),
+                )
                 {
                     LazyColumn(state = listState) {
                         queryAppList.forEach{(name, list) ->
@@ -669,6 +657,7 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
     if(token != null){
         viewModel.token.value = token
     }
+    var openQRCodeDialog by remember { mutableStateOf(false) }
 
     FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
         if (!task.isSuccessful) {
@@ -683,6 +672,18 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
         editor.putString("Token", tokenStr)
         editor.apply()
     })
+
+    when {
+        openQRCodeDialog -> {
+            TokenQRCodeScreen(
+                sharedPreferences,
+                onDismissRequest = { openQRCodeDialog = false },
+                onConfirmation = {
+                    openQRCodeDialog = false
+                },
+            )
+        }
+    }
 
     Scaffold(topBar = { TopAppBar( title = { Text(stringResource(id = R.string.client), style = MaterialTheme.typography.titleLarge)}, modifier = Modifier, colors = TopAppBarColors(containerColor = MaterialTheme.colorScheme.primary, actionIconContentColor = Color.White, navigationIconContentColor = Color.White,
         scrolledContainerColor = Color.White, titleContentColor = Color.White), actions = {
@@ -715,21 +716,75 @@ fun ClientScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                         .fillMaxWidth())
                 }
 
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween){
+                Box(modifier=Modifier.weight(1f).align(Alignment.CenterVertically)){
+                    Row {
+                        IconButton(onClick = { openQRCodeDialog = true }) {
+                            Icon(imageVector = Icons.Filled.Share,
+                                contentDescription = stringResource(id = R.string.share_token)
+                            )
+                        }
+                    }
+                }
                 Button(onClick = {
-                    val textToCopy = token.toString()
                     val annotatedString: AnnotatedString = AnnotatedString(token)
                     clipboardManager.setText(annotatedString)
                     Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
 
                 }, modifier = Modifier
-                    .padding(10.dp)
-                    .align(Alignment.CenterHorizontally)) {
+                    .padding(10.dp)) {
                     Text(text = stringResource(id = R.string.client_screen_copy))
                 }
             }
-
+            }
         }
     }
+}
+
+@Composable
+fun TokenQRCodeScreen(
+    sharedPreferences: SharedPreferences, onDismissRequest: () -> Unit,
+    onConfirmation: () -> Unit,
+){
+    val token = sharedPreferences.getString("Token", "")
+    val blackColor: Int = 0x000000
+    val whiteColor: Int = 0xFFFFFF
+
+    AlertDialog(
+        title = {
+            Text(text = stringResource(R.string.share_token))
+        },
+        text = {
+            if(!token.isNullOrEmpty()){
+                val barcodeEncoder = BarcodeEncoder()
+                val bitMatrix = barcodeEncoder.encode(token, BarcodeFormat.QR_CODE, 400, 400)
+                val bitmap = Bitmap.createBitmap(400, 400, Bitmap.Config.RGB_565)
+                for (x in 0..399) {
+                    for (y in 0..399) {
+                        bitmap.setPixel(x, y, if (bitMatrix[x, y]) blackColor else whiteColor)
+                    }
+                }
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center){
+                    Image(bitmap = bitmap.asImageBitmap(), contentDescription = stringResource(id = R.string.token_qrcode))
+                }
+            }
+        },
+        onDismissRequest = {
+            onDismissRequest()
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirmation()
+                }
+            ) {
+                Text(text = stringResource(id = R.string.token_qrcode_confirm))
+            }
+        },
+    )
 }
 
 fun deleteDirectory(directory: File) {
@@ -851,7 +906,9 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                 )
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -874,7 +931,9 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                 }
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)) {
                 Row(modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp),
@@ -890,7 +949,9 @@ fun ServerScreen(sharedPreferences: SharedPreferences, viewModel: MainScreenView
                 }
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)) {
                 Row(modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp),
