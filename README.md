@@ -12,15 +12,15 @@ and your main device can receive fcm push.
 and also the samsung china has cooperated with Getui and Jiguang Push, to provide unified push service, but only few 
 chinese apps use it to push ads, not even important information.
 
-![WelcomeScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213310_NotificationSync.jpg)
+![WelcomeScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213310_NotificationSync.jpg){:width="500px"}
 
-![ServerScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213244_NotificationSync.jpg)
+![ServerScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213244_NotificationSync.jpg){:width="500px"}
 
-![AppListScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213259_NotificationSync.jpg)
+![AppListScreen](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241205_213259_NotificationSync.jpg){:width="500px"}
 
-![ShareTokenUseQRCode](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241207_171706_NotificationSync.jpg)
+![ShareTokenUseQRCode](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241207_171706_NotificationSync.jpg){:width="500px"}
 
-![UseGoogleLensToScanQRCode](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241207_171741_Google.jpg)
+![UseGoogleLensToScanQRCode](https://github.com/HappyMax0/NotificationSync/blob/main/demoImages/Screenshot_20241207_171741_Google.jpg){:width="500px"}
 
 
 您可以使用一个华为或小米或oppo或vivo或魅族设备作为服务器，
